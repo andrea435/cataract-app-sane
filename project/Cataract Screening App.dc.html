@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+@keyframes cs-spin { to { transform: rotate(360deg); } }
+@keyframes cs-bar { 0% { width: 8%; } 60% { width: 78%; } 100% { width: 96%; } }
+@keyframes cs-pulse { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
+body { margin: 0; background: oklch(96% 0.006 235); font-family: 'IBM Plex Sans', system-ui, sans-serif; }
+a { color: oklch(55% 0.13 220); }
+a:hover { color: oklch(45% 0.13 220); }
+</style>
+</helmet>
+
+<div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:40px 20px; box-sizing:border-box;">
+<div style="width:390px; min-height:844px; background:oklch(99% 0.003 235); border-radius:28px; box-shadow:0 20px 60px rgba(20,30,50,0.18), 0 2px 8px rgba(20,30,50,0.10); overflow:hidden; position:relative; display:flex; flex-direction:column; color:oklch(22% 0.015 235);">
+
+<sc-if value="{{ isOnboarding }}" hint-placeholder-val="{{ true }}">
+<div style="flex:1; display:flex; flex-direction:column; padding:44px 28px 32px; box-sizing:border-box;">
+  <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:22px;">
+    <div style="width:96px; height:96px; border-radius:50%; background:oklch(93% 0.03 220); display:flex; align-items:center; justify-content:center;">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="6.5" stroke="oklch(45% 0.13 220)" stroke-width="1.6"/><circle cx="12" cy="12" r="2.4" fill="oklch(45% 0.13 220)"/><path d="M2 12C4 7 8 4.5 12 4.5S20 7 22 12C20 17 16 19.5 12 19.5S4 17 2 12Z" stroke="oklch(45% 0.13 220)" stroke-width="1.4"/></svg>
+    </div>
+    <div>
+      <div style="font-size:22px; font-weight:700; margin-bottom:10px;">{{ onboardTitle }}</div>
+      <div style="font-size:14.5px; line-height:1.6; color:oklch(48% 0.012 235); max-width:280px; margin:0 auto;">{{ onboardBody }}</div>
+    </div>
+  </div>
+  <div style="display:flex; justify-content:center; gap:7px; margin-bottom:26px;">
+    <sc-for list="{{ onboardDots }}" as="dot" hint-placeholder-count="3">
+      <div style="width:{{ dot.size }}px; height:7px; border-radius:4px; background:{{ dot.color }};"></div>
+    </sc-for>
+  </div>
+  <div style="display:flex; gap:12px;">
+    <button onClick="{{ skipOnboarding }}" style="flex:1; padding:14px; border-radius:12px; border:1px solid oklch(88% 0.008 235); background:transparent; color:oklch(45% 0.012 235); font-size:14.5px; font-weight:600; font-family:inherit; cursor:pointer;">Skip</button>
+    <button onClick="{{ nextOnboarding }}" style="flex:2; padding:14px; border-radius:12px; border:none; background:oklch(50% 0.13 220); color:white; font-size:14.5px; font-weight:600; font-family:inherit; cursor:pointer;">{{ onboardCta }}</button>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isPatientInfo }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1; display:flex; flex-direction:column; padding:20px 24px 28px; box-sizing:border-box;">
+  <button onClick="{{ backToHome }}" style="align-self:flex-start; border:none; background:none; padding:6px 0; margin-bottom:8px; cursor:pointer; color:oklch(48% 0.012 235); font-family:inherit; font-size:14px;">&larr; Back</button>
+  <div style="font-size:20px; font-weight:700; margin-bottom:6px;">New Screening</div>
+  <div style="font-size:13.5px; color:oklch(48% 0.012 235); margin-bottom:26px;">Enter patient details before capturing the eye image.</div>
+  <label style="font-size:12.5px; font-weight:600; color:oklch(40% 0.012 235); margin-bottom:6px;">Patient name</label>
+  <input value="{{ patientName }}" onChange="{{ setPatientName }}" placeholder="e.g. Amara Njoku" style="padding:13px 14px; border-radius:10px; border:1px solid oklch(88% 0.008 235); font-size:14.5px; font-family:inherit; margin-bottom:18px; outline:none;"/>
+  <label style="font-size:12.5px; font-weight:600; color:oklch(40% 0.012 235); margin-bottom:6px;">Patient ID (optional)</label>
+  <input value="{{ patientId }}" onChange="{{ setPatientId }}" placeholder="e.g. CHW-00214" style="padding:13px 14px; border-radius:10px; border:1px solid oklch(88% 0.008 235); font-size:14.5px; font-family:inherit; margin-bottom:18px; outline:none;"/>
+  <label style="font-size:12.5px; font-weight:600; color:oklch(40% 0.012 235); margin-bottom:6px;">Eye being screened</label>
+  <div style="display:flex; gap:10px; margin-bottom:auto;">
+    <button onClick="{{ setEyeLeft }}" style="flex:1; padding:12px; border-radius:10px; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer; border:1.5px solid {{ eyeLeftBorder }}; background:{{ eyeLeftBg }}; color:{{ eyeLeftColor }};">Left eye</button>
+    <button onClick="{{ setEyeRight }}" style="flex:1; padding:12px; border-radius:10px; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer; border:1.5px solid {{ eyeRightBorder }}; background:{{ eyeRightBg }}; color:{{ eyeRightColor }};">Right eye</button>
+  </div>
+  <button onClick="{{ goToCapture }}" disabled="{{ patientInfoIncomplete }}" style="margin-top:24px; padding:15px; border-radius:12px; border:none; background:{{ continueBg }}; color:white; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer;">Continue to capture</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isCapture }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1; display:flex; flex-direction:column; background:oklch(15% 0.01 235); color:white;">
+  <div style="display:flex; align-items:center; justify-content:space-between; padding:18px 20px;">
+    <button onClick="{{ backToHome }}" style="border:none; background:none; color:white; font-size:14px; font-family:inherit; cursor:pointer;">&larr; Cancel</button>
+    <div style="font-size:13px; font-weight:600; opacity:0.85;">{{ captureEyeLabel }}</div>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="opacity:0.85;"><path d="M12 2L4 6v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V6l-8-4Z" stroke="white" stroke-width="1.4"/></svg>
+  </div>
+  <div style="flex:1; display:flex; align-items:center; justify-content:center; position:relative;">
+    <div style="width:260px; height:260px; border-radius:50%; border:2px dashed oklch(75% 0.06 220); display:flex; align-items:center; justify-content:center; position:relative;">
+      <div style="width:236px; height:236px; border-radius:50%; overflow:hidden; background:repeating-linear-gradient(45deg, oklch(28% 0.01 235), oklch(28% 0.01 235) 8px, oklch(24% 0.01 235) 8px, oklch(24% 0.01 235) 16px); display:flex; align-items:center; justify-content:center;">
+        <div style="font-family:ui-monospace,monospace; font-size:11px; color:oklch(75% 0.02 235); text-align:center; line-height:1.6; padding:0 30px;">front-of-eye<br/>camera preview</div>
+      </div>
+    </div>
+    <div style="position:absolute; bottom:26px; font-size:13px; color:oklch(85% 0.02 235); text-align:center; padding:0 40px; line-height:1.5;">Align the eye within the circle.<br/>Hold steady and keep the eye open.</div>
+  </div>
+  <div style="display:flex; align-items:center; justify-content:center; padding:30px 0 40px;">
+    <button onClick="{{ goToScanning }}" style="width:74px; height:74px; border-radius:50%; background:white; border:5px solid oklch(45% 0.01 235); cursor:pointer;"></button>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isScanning }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 40px; gap:26px;">
+  <div style="width:64px; height:64px; border-radius:50%; border:4px solid oklch(90% 0.02 220); border-top-color:oklch(50% 0.13 220); animation: cs-spin 0.9s linear infinite;"></div>
+  <div style="text-align:center;">
+    <div style="font-size:16px; font-weight:600; margin-bottom:6px;">Analyzing image</div>
+    <div style="font-size:13.5px; color:oklch(48% 0.012 235);">Running ML detection model on the captured eye image&hellip;</div>
+  </div>
+  <div style="width:100%; height:6px; border-radius:4px; background:oklch(92% 0.01 235); overflow:hidden;">
+    <div style="height:100%; border-radius:4px; background:oklch(50% 0.13 220); animation: cs-bar 2s ease-in-out forwards;"></div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDisclaimer }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1; display:flex; flex-direction:column; padding:32px 26px 28px; box-sizing:border-box;">
+  <div style="font-size:19px; font-weight:700; margin-bottom:16px;">Before you continue</div>
+  <div style="flex:1; font-size:13.5px; line-height:1.7; color:oklch(38% 0.012 235); overflow:auto;">
+    <p>This tool provides an automated screening estimate for cataract presence based on image analysis of the front of the eye. It is <strong>not a medical diagnosis</strong>.</p>
+    <p>Results should be used to help prioritize referrals, not to replace a clinical exam. All cases &mdash; especially those flagged as detected &mdash; should be confirmed by an ophthalmologist or trained eye care professional.</p>
+    <p>Image quality, lighting, and patient cooperation can affect accuracy. Recapture the image if it is blurry or poorly lit.</p>
+  </div>
+  <label style="display:flex; align-items:flex-start; gap:10px; margin:20px 0 18px; cursor:pointer;">
+    <input type="checkbox" checked="{{ disclaimerChecked }}" onChange="{{ toggleDisclaimer }}" style="margin-top:2px; width:17px; height:17px; accent-color:oklch(50% 0.13 220);"/>
+    <span style="font-size:13px; color:oklch(35% 0.012 235); line-height:1.5;">I understand this is a screening aid, not a diagnosis.</span>
+  </label>
+  <button onClick="{{ goToResult }}" disabled="{{ disclaimerDisabled }}" style="padding:15px; border-radius:12px; border:none; background:{{ disclaimerCta }}; color:white; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer;">View results</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isResult }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1; display:flex; flex-direction:column; padding:20px 24px 28px; box-sizing:border-box; overflow:auto;">
+  <button onClick="{{ resultBackAction }}" style="align-self:flex-start; border:none; background:none; padding:6px 0; margin-bottom:10px; cursor:pointer; color:oklch(48% 0.012 235); font-family:inherit; font-size:14px;">&larr; {{ resultBackLabel }}</button>
+  <div style="text-align:center; font-size:12.5px; color:oklch(48% 0.012 235); margin-bottom:2px;">{{ currentResult.name }} &middot; {{ currentResult.eyeLabel }} &middot; {{ currentResult.date }}</div>
+  <div style="display:flex; flex-direction:column; align-items:center; padding:18px 0 8px;">
+    <svg width="152" height="152" viewBox="0 0 140 140">
+      <circle cx="70" cy="70" r="58" fill="none" stroke="oklch(92% 0.01 235)" stroke-width="12"/>
+      <circle cx="70" cy="70" r="58" fill="none" stroke="{{ currentResult.statusColor }}" stroke-width="12" stroke-linecap="round" stroke-dasharray="364.4" stroke-dashoffset="{{ currentResult.dashOffset }}" transform="rotate(-90 70 70)"/>
+      <text x="70" y="65" text-anchor="middle" font-size="30" font-weight="700" fill="oklch(22% 0.015 235)" font-family="IBM Plex Sans, system-ui">{{ currentResult.probability }}%</text>
+      <text x="70" y="85" text-anchor="middle" font-size="10.5" fill="oklch(48% 0.012 235)" font-family="IBM Plex Sans, system-ui">confidence</text>
+    </svg>
+  </div>
+  <div style="text-align:center; padding:6px 14px 18px;">
+    <div style="display:inline-block; padding:6px 14px; border-radius:20px; background:{{ currentResult.statusBg }}; color:{{ currentResult.statusColor }}; font-size:14.5px; font-weight:700; margin-bottom:10px;">{{ currentResult.statusLabel }}</div>
+    <sc-if value="{{ currentResult.detected }}" hint-placeholder-val="{{ false }}">
+      <div style="font-size:12.5px; color:oklch(48% 0.012 235);">Estimated severity: <strong style="color:oklch(30% 0.012 235);">{{ currentResult.severity }}</strong></div>
+    </sc-if>
+  </div>
+  <div style="background:oklch(97% 0.005 235); border-radius:14px; padding:16px; display:flex; gap:14px; align-items:center; margin-bottom:22px;">
+    <div style="width:52px; height:52px; border-radius:10px; flex:none; overflow:hidden; background:repeating-linear-gradient(45deg, oklch(88% 0.01 235), oklch(88% 0.01 235) 5px, oklch(82% 0.01 235) 5px, oklch(82% 0.01 235) 10px);"></div>
+    <div style="font-size:11.5px; font-family:ui-monospace,monospace; color:oklch(45% 0.012 235); line-height:1.5;">captured<br/>eye image</div>
+  </div>
+  <button onClick="{{ goToRecommend }}" style="padding:15px; border-radius:12px; border:none; background:oklch(50% 0.13 220); color:white; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer;">View recommended steps</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isRecommend }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1; display:flex; flex-direction:column; padding:24px 24px 28px; box-sizing:border-box; overflow:auto;">
+  <div style="font-size:19px; font-weight:700; margin-bottom:4px;">Recommended steps</div>
+  <div style="font-size:13px; color:oklch(48% 0.012 235); margin-bottom:22px;">Based on the {{ currentResult.probability }}% {{ currentResult.statusLabelLower }} result for {{ currentResult.name }}.</div>
+  <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:24px;">
+    <sc-for list="{{ recommendSteps }}" as="step" hint-placeholder-count="4">
+      <div style="display:flex; gap:12px; align-items:flex-start; padding:14px; border-radius:12px; background:oklch(97% 0.005 235);">
+        <div style="width:24px; height:24px; border-radius:50%; background:{{ currentResult.statusBg }}; color:{{ currentResult.statusColor }}; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex:none;">{{ step.index }}</div>
+        <div style="font-size:13.5px; line-height:1.5; color:oklch(30% 0.012 235);">{{ step.text }}</div>
+      </div>
+    </sc-for>
+  </div>
+  <div style="margin-top:auto; display:flex; flex-direction:column; gap:10px;">
+    <sc-if value="{{ currentResult.detected }}" hint-placeholder-val="{{ false }}">
+      <button onClick="{{ goFindClinic }}" style="padding:14px; border-radius:12px; border:1.5px solid oklch(50% 0.13 220); background:transparent; color:oklch(50% 0.13 220); font-size:14.5px; font-weight:600; font-family:inherit; cursor:pointer;">Find nearby clinic</button>
+    </sc-if>
+    <button onClick="{{ finishScreening }}" style="padding:15px; border-radius:12px; border:none; background:oklch(50% 0.13 220); color:white; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer;">Finish &amp; save to history</button>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isMain }}" hint-placeholder-val="{{ false }}">
+<div style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+  <div style="flex:1; overflow:auto;">
+
+    <sc-if value="{{ isTabScan }}" hint-placeholder-val="{{ true }}">
+    <div style="padding:26px 24px 20px;">
+      <div style="font-size:13px; color:oklch(48% 0.012 235); margin-bottom:2px;">{{ greeting }}</div>
+      <div style="font-size:21px; font-weight:700; margin-bottom:22px;">{{ workerName }}</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:22px;">
+        <div style="background:oklch(97% 0.005 235); border-radius:14px; padding:16px;">
+          <div style="font-size:22px; font-weight:700;">{{ stats.today }}</div>
+          <div style="font-size:12px; color:oklch(48% 0.012 235); margin-top:2px;">Screened today</div>
+        </div>
+        <div style="background:oklch(97% 0.005 235); border-radius:14px; padding:16px;">
+          <div style="font-size:22px; font-weight:700; color:oklch(52% 0.14 25);">{{ stats.flagged }}</div>
+          <div style="font-size:12px; color:oklch(48% 0.012 235); margin-top:2px;">Flagged for referral</div>
+        </div>
+      </div>
+      <button onClick="{{ startScreening }}" style="width:100%; padding:18px; border-radius:14px; border:none; background:oklch(50% 0.13 220); color:white; font-size:15.5px; font-weight:700; font-family:inherit; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:26px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="7" width="18" height="13" rx="2.5" stroke="white" stroke-width="1.6"/><path d="M8 7l1.5-2.5h5L16 7" stroke="white" stroke-width="1.6"/><circle cx="12" cy="13.5" r="3.4" stroke="white" stroke-width="1.6"/></svg>
+        Start new screening
+      </button>
+      <div style="font-size:13px; font-weight:600; color:oklch(38% 0.012 235); margin-bottom:12px;">Recent activity</div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <sc-for list="{{ recentHistory }}" as="item" hint-placeholder-count="3">
+          <div onClick="{{ item.view }}" style="display:flex; align-items:center; justify-content:space-between; padding:13px 14px; border-radius:12px; background:oklch(97% 0.005 235); cursor:pointer;">
+            <div>
+              <div style="font-size:13.5px; font-weight:600;">{{ item.name }}</div>
+              <div style="font-size:11.5px; color:oklch(52% 0.012 235); margin-top:2px;">{{ item.date }} &middot; {{ item.eyeLabel }}</div>
+            </div>
+            <div style="font-size:11.5px; font-weight:700; padding:5px 10px; border-radius:16px; background:{{ item.statusBg }}; color:{{ item.statusColor }};">{{ item.probability }}%</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isTabHistory }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:26px 24px 20px;">
+      <div style="font-size:21px; font-weight:700; margin-bottom:20px;">Scan history</div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <sc-for list="{{ historyList }}" as="item" hint-placeholder-count="5">
+          <div onClick="{{ item.view }}" style="display:flex; align-items:center; justify-content:space-between; padding:14px; border-radius:12px; background:oklch(97% 0.005 235); cursor:pointer;">
+            <div>
+              <div style="font-size:14px; font-weight:600;">{{ item.name }}</div>
+              <div style="font-size:12px; color:oklch(52% 0.012 235); margin-top:3px;">{{ item.date }} &middot; {{ item.eyeLabel }}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:11.5px; font-weight:700; padding:5px 10px; border-radius:16px; background:{{ item.statusBg }}; color:{{ item.statusColor }};">{{ item.statusLabel }}</div>
+              <div style="font-size:11px; color:oklch(52% 0.012 235); margin-top:4px;">{{ item.probability }}% conf.</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isTabClinics }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:26px 24px 20px;">
+      <div style="font-size:21px; font-weight:700; margin-bottom:4px;">Referral clinics</div>
+      <div style="font-size:13px; color:oklch(48% 0.012 235); margin-bottom:20px;">Nearby facilities for confirmed diagnosis and treatment.</div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <sc-for list="{{ clinics }}" as="clinic" hint-placeholder-count="4">
+          <div style="padding:16px; border-radius:14px; background:oklch(97% 0.005 235); display:flex; flex-direction:column; gap:4px;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+              <div style="font-size:14.5px; font-weight:700;">{{ clinic.name }}</div>
+              <div style="font-size:12px; color:oklch(48% 0.012 235);">{{ clinic.distance }}</div>
+            </div>
+            <div style="font-size:12.5px; color:oklch(48% 0.012 235);">{{ clinic.address }}</div>
+            <div style="font-size:12.5px; color:oklch(48% 0.012 235); margin-bottom:8px;">{{ clinic.phone }}</div>
+            <button onClick="{{ clinic.book }}" disabled="{{ clinic.booked }}" style="align-self:flex-start; padding:9px 16px; border-radius:20px; border:1.5px solid {{ clinic.btnBorder }}; background:{{ clinic.btnBg }}; color:{{ clinic.btnColor }}; font-size:12.5px; font-weight:700; font-family:inherit; cursor:pointer;">{{ clinic.btnLabel }}</button>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isTabProfile }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:26px 24px 20px;">
+      <div style="display:flex; align-items:center; gap:14px; margin-bottom:24px;">
+        <div style="width:56px; height:56px; border-radius:50%; background:oklch(93% 0.03 220); display:flex; align-items:center; justify-content:center; font-size:19px; font-weight:700; color:oklch(45% 0.13 220);">{{ workerInitials }}</div>
+        <div>
+          <div style="font-size:16.5px; font-weight:700;">{{ workerName }}</div>
+          <div style="font-size:12.5px; color:oklch(48% 0.012 235);">Community Health Worker &middot; {{ workerRegion }}</div>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:26px;">
+        <div style="background:oklch(97% 0.005 235); border-radius:12px; padding:12px; text-align:center;">
+          <div style="font-size:17px; font-weight:700;">{{ stats.total }}</div>
+          <div style="font-size:10.5px; color:oklch(48% 0.012 235); margin-top:2px;">Total scans</div>
+        </div>
+        <div style="background:oklch(97% 0.005 235); border-radius:12px; padding:12px; text-align:center;">
+          <div style="font-size:17px; font-weight:700; color:oklch(52% 0.14 25);">{{ stats.flaggedTotal }}</div>
+          <div style="font-size:10.5px; color:oklch(48% 0.012 235); margin-top:2px;">Flagged</div>
+        </div>
+        <div style="background:oklch(97% 0.005 235); border-radius:12px; padding:12px; text-align:center;">
+          <div style="font-size:17px; font-weight:700;">{{ stats.week }}</div>
+          <div style="font-size:10.5px; color:oklch(48% 0.012 235); margin-top:2px;">This week</div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column;">
+        <sc-for list="{{ settingsRows }}" as="row" hint-placeholder-count="5">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 2px; border-bottom:1px solid oklch(93% 0.006 235);">
+            <div style="font-size:13.5px; color:oklch(28% 0.012 235);">{{ row.label }}</div>
+            <sc-if value="{{ row.isToggle }}" hint-placeholder-val="{{ false }}">
+              <div onClick="{{ row.toggle }}" style="width:40px; height:23px; border-radius:12px; background:{{ row.toggleBg }}; position:relative; cursor:pointer;">
+                <div style="width:19px; height:19px; border-radius:50%; background:white; position:absolute; top:2px; left:{{ row.togglePos }}px; transition:left 0.15s;"></div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ row.isLink }}" hint-placeholder-val="{{ true }}">
+              <span style="font-size:13px; color:oklch(55% 0.012 235);">{{ row.value }} &rsaquo;</span>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+
+  </div>
+
+  <div style="display:flex; border-top:1px solid oklch(92% 0.006 235); padding:10px 8px 16px; background:oklch(99% 0.003 235);">
+    <sc-for list="{{ tabs }}" as="tabItem" hint-placeholder-count="4">
+      <div onClick="{{ tabItem.select }}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; color:{{ tabItem.color }};">
+        <sc-if value="{{ tabItem.isScan }}" hint-placeholder-val="{{ false }}">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><rect x="3" y="7" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="13.5" r="3.2" stroke="currentColor" stroke-width="1.7"/></svg>
+        </sc-if>
+        <sc-if value="{{ tabItem.isHistory }}" hint-placeholder-val="{{ false }}">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="4.2" rx="1.2" stroke="currentColor" stroke-width="1.7"/><rect x="4" y="10.2" width="16" height="4.2" rx="1.2" stroke="currentColor" stroke-width="1.7"/><rect x="4" y="16.4" width="16" height="4.2" rx="1.2" stroke="currentColor" stroke-width="1.7"/></svg>
+        </sc-if>
+        <sc-if value="{{ tabItem.isClinics }}" hint-placeholder-val="{{ false }}">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12Z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="9" r="2.4" stroke="currentColor" stroke-width="1.7"/></svg>
+        </sc-if>
+        <sc-if value="{{ tabItem.isProfile }}" hint-placeholder-val="{{ false }}">
+          <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8.2" r="3.6" stroke="currentColor" stroke-width="1.7"/><path d="M4.5 20c1.4-4 4.3-6 7.5-6s6.1 2 7.5 6" stroke="currentColor" stroke-width="1.7"/></svg>
+        </sc-if>
+        <div style="font-size:10.5px; font-weight:600;">{{ tabItem.label }}</div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const ONBOARD_SLIDES = [
+  { title: "Screen for cataracts in the field", body: "Capture a photo of the front of the eye and get an instant ML-based estimate to help prioritize referrals.", cta: "Next" },
+  { title: "Fast, guided capture", body: "Step-by-step alignment guidance helps you get a usable image even without clinical equipment.", cta: "Next" },
+  { title: "Built for community screening", body: "Track every patient you screen, flag urgent referrals, and connect them to nearby clinics.", cta: "Get started" },
+];
+
+const CLINIC_DATA = [
+  { id: "c1", name: "Riverside Eye Institute", distance: "2.1 km", address: "14 Riverside Rd", phone: "+254 700 112 233" },
+  { id: "c2", name: "St. Mary's Ophthalmology Unit", distance: "4.6 km", address: "St. Mary's Hospital, Block C", phone: "+254 700 998 112" },
+  { id: "c3", name: "Northgate Vision Center", distance: "7.8 km", address: "Northgate Plaza, 2nd Fl", phone: "+254 700 442 890" },
+  { id: "c4", name: "County Referral Hospital", distance: "11.3 km", address: "County Rd, Eye Dept", phone: "+254 700 221 004" },
+];
+
+function statusFields(probability) {
+  const detected = probability >= 50;
+  const severity = probability >= 80 ? "Severe" : probability >= 65 ? "Moderate" : "Mild";
+  const color = detected ? "oklch(52% 0.14 25)" : "oklch(52% 0.13 150)";
+  const bg = detected ? "oklch(93% 0.03 25)" : "oklch(93% 0.03 150)";
+  const label = detected ? "Cataract detected" : "No cataract detected";
+  const circumference = 364.4;
+  return {
+    detected, severity, statusColor: color, statusBg: bg,
+    statusLabel: label, statusLabelLower: label.toLowerCase(),
+    dashOffset: circumference * (1 - probability / 100),
+  };
+}
+
+function makeRecord(name, eyeLabel, date, probability) {
+  return { id: Math.random().toString(36).slice(2), name, eyeLabel, date, probability, ...statusFields(probability) };
+}
+
+class Component extends DCLogic {
+  state = {
+    screen: "onboarding",
+    onboardStep: 0,
+    patientName: "",
+    patientId: "",
+    eye: "Left",
+    disclaimerChecked: false,
+    currentResult: null,
+    viewOnly: false,
+    activeTab: "scan",
+    bookedClinics: {},
+    notifSetting: true,
+    history: [
+      makeRecord("Grace Wanjiru", "Right eye", "Aug 24, 2026", 82),
+      makeRecord("Peter Otieno", "Left eye", "Aug 23, 2026", 34),
+      makeRecord("Fatuma Ali", "Left eye", "Aug 21, 2026", 91),
+      makeRecord("Samuel Kiptoo", "Right eye", "Aug 19, 2026", 22),
+      makeRecord("Jane Achieng", "Left eye", "Aug 17, 2026", 58),
+    ],
+  };
+
+  skipOnboarding = () => this.setState({ screen: "main" });
+  nextOnboarding = () => {
+    if (this.state.onboardStep >= ONBOARD_SLIDES.length - 1) this.setState({ screen: "main" });
+    else this.setState(s => ({ onboardStep: s.onboardStep + 1 }));
+  };
+
+  backToHome = () => this.setState({ screen: "main", activeTab: "scan" });
+  startScreening = () => this.setState({ screen: "patient-info", patientName: "", patientId: "", eye: "Left", disclaimerChecked: false, viewOnly: false });
+  setPatientName = e => this.setState({ patientName: e.target.value });
+  setPatientId = e => this.setState({ patientId: e.target.value });
+  setEyeLeft = () => this.setState({ eye: "Left" });
+  setEyeRight = () => this.setState({ eye: "Right" });
+  goToCapture = () => { if (this.state.patientName.trim()) this.setState({ screen: "capture" }); };
+  goToScanning = () => {
+    this.setState({ screen: "scanning" });
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.setState({ screen: "disclaimer" }), 2000);
+  };
+  toggleDisclaimer = () => this.setState(s => ({ disclaimerChecked: !s.disclaimerChecked }));
+
+  goToResult = () => {
+    if (!this.state.disclaimerChecked) return;
+    const probability = Math.floor(Math.random() * 90) + 8;
+    const name = this.state.patientName || "Patient";
+    const date = "Aug 27, 2026";
+    const eyeLabel = this.state.eye + " eye";
+    const result = { name, date, eyeLabel, probability, ...statusFields(probability) };
+    this.setState({ screen: "result", currentResult: result, viewOnly: false });
+  };
+
+  viewHistoryItem = item => this.setState({ screen: "result", currentResult: item, viewOnly: true });
+  resultBackAction = () => {
+    if (this.state.viewOnly) this.setState({ screen: "main", activeTab: "history" });
+    else this.setState({ screen: "disclaimer" });
+  };
+
+  goToRecommend = () => this.setState({ screen: "recommend" });
+  goFindClinic = () => this.setState({ screen: "main", activeTab: "clinics" });
+  finishScreening = () => {
+    const r = this.state.currentResult;
+    const isNew = !this.state.history.find(h => h.id === r.id);
+    this.setState(s => ({
+      screen: "main", activeTab: "scan",
+      history: isNew ? [r, ...s.history] : s.history,
+    }));
+  };
+
+  selectTab = tab => this.setState({ activeTab: tab, screen: "main" });
+  bookClinic = id => this.setState(s => ({ bookedClinics: { ...s.bookedClinics, [id]: true } }));
+  toggleNotif = () => this.setState(s => ({ notifSetting: !s.notifSetting }));
+
+  renderVals() {
+    const s = this.state;
+    const slide = ONBOARD_SLIDES[s.onboardStep];
+
+    const historyList = s.history.map(item => ({ ...item, view: () => this.viewHistoryItem(item) }));
+    const recentHistory = historyList.slice(0, 3);
+
+    const clinics = CLINIC_DATA.map(c => {
+      const booked = !!s.bookedClinics[c.id];
+      return {
+        ...c, booked,
+        btnLabel: booked ? "Referral sent" : "Refer patient",
+        btnBg: booked ? "oklch(93% 0.03 150)" : "transparent",
+        btnColor: booked ? "oklch(45% 0.13 150)" : "oklch(50% 0.13 220)",
+        btnBorder: booked ? "oklch(93% 0.03 150)" : "oklch(50% 0.13 220)",
+        book: () => this.bookClinic(c.id),
+      };
+    });
+
+    const tabDefs = [
+      { key: "scan", label: "Scan", isScan: true },
+      { key: "history", label: "History", isHistory: true },
+      { key: "clinics", label: "Clinics", isClinics: true },
+      { key: "profile", label: "Profile", isProfile: true },
+    ];
+    const tabs = tabDefs.map(t => ({
+      ...t,
+      color: s.activeTab === t.key ? "oklch(50% 0.13 220)" : "oklch(58% 0.012 235)",
+      select: () => this.selectTab(t.key),
+    }));
+
+    const recommendStepsDetected = [
+      "Refer the patient to an ophthalmologist within 2 weeks.",
+      "Document the finding and probability score in the patient record.",
+      "Advise the patient to avoid straining the affected eye and to protect it from bright sunlight.",
+      "Schedule a follow-up screening after the referral visit.",
+    ];
+    const recommendStepsClear = [
+      "No referral is needed at this time.",
+      "Advise routine eye protection (UV-blocking sunglasses, avoiding smoke exposure).",
+      "Schedule a routine follow-up screening in 12 months.",
+      "Log the result in the patient record for future comparison.",
+    ];
+    const cr = s.currentResult;
+    const recommendSteps = (cr ? (cr.detected ? recommendStepsDetected : recommendStepsClear) : [])
+      .map((text, i) => ({ text, index: i + 1 }));
+
+    const settingsRows = [
+      { label: "Language", value: "English", isLink: true },
+      { label: "Sync data", value: "Auto", isLink: true },
+      { label: "Notifications", isToggle: true, toggleBg: s.notifSetting ? "oklch(50% 0.13 220)" : "oklch(88% 0.008 235)", togglePos: s.notifSetting ? 19 : 2, toggle: this.toggleNotif },
+      { label: "About the AI model", value: "v2.3", isLink: true },
+      { label: "Help & support", value: "", isLink: true },
+      { label: "Log out", value: "", isLink: true },
+    ];
+
+    const stats = {
+      today: 6, flagged: 2, total: s.history.length + 41, flaggedTotal: s.history.filter(h => h.detected).length + 12, week: 19,
+    };
+
+    return {
+      isOnboarding: s.screen === "onboarding",
+      onboardTitle: slide.title, onboardBody: slide.body, onboardCta: slide.cta,
+      onboardDots: ONBOARD_SLIDES.map((_, i) => ({ size: i === s.onboardStep ? 20 : 7, color: i === s.onboardStep ? "oklch(50% 0.13 220)" : "oklch(88% 0.008 235)" })),
+      skipOnboarding: this.skipOnboarding, nextOnboarding: this.nextOnboarding,
+
+      isPatientInfo: s.screen === "patient-info",
+      patientName: s.patientName, patientId: s.patientId,
+      setPatientName: this.setPatientName, setPatientId: this.setPatientId,
+      setEyeLeft: this.setEyeLeft, setEyeRight: this.setEyeRight,
+      eyeLeftBorder: s.eye === "Left" ? "oklch(50% 0.13 220)" : "oklch(88% 0.008 235)",
+      eyeLeftBg: s.eye === "Left" ? "oklch(93% 0.03 220)" : "transparent",
+      eyeLeftColor: s.eye === "Left" ? "oklch(45% 0.13 220)" : "oklch(35% 0.012 235)",
+      eyeRightBorder: s.eye === "Right" ? "oklch(50% 0.13 220)" : "oklch(88% 0.008 235)",
+      eyeRightBg: s.eye === "Right" ? "oklch(93% 0.03 220)" : "transparent",
+      eyeRightColor: s.eye === "Right" ? "oklch(45% 0.13 220)" : "oklch(35% 0.012 235)",
+      patientInfoIncomplete: !s.patientName.trim(),
+      continueBg: s.patientName.trim() ? "oklch(50% 0.13 220)" : "oklch(85% 0.01 235)",
+      goToCapture: this.goToCapture, backToHome: this.backToHome,
+
+      isCapture: s.screen === "capture", captureEyeLabel: s.eye + " eye", goToScanning: this.goToScanning,
+      isScanning: s.screen === "scanning",
+
+      isDisclaimer: s.screen === "disclaimer", disclaimerChecked: s.disclaimerChecked, toggleDisclaimer: this.toggleDisclaimer,
+      disclaimerDisabled: !s.disclaimerChecked,
+      disclaimerCta: s.disclaimerChecked ? "oklch(50% 0.13 220)" : "oklch(85% 0.01 235)",
+      goToResult: this.goToResult,
+
+      isResult: s.screen === "result", currentResult: cr,
+      resultBackAction: this.resultBackAction, resultBackLabel: s.viewOnly ? "Back to history" : "Back",
+      goToRecommend: this.goToRecommend,
+
+      isRecommend: s.screen === "recommend", recommendSteps, goFindClinic: this.goFindClinic, finishScreening: this.finishScreening,
+
+      isMain: s.screen === "main",
+      isTabScan: s.activeTab === "scan", isTabHistory: s.activeTab === "history",
+      isTabClinics: s.activeTab === "clinics", isTabProfile: s.activeTab === "profile",
+      greeting: "Good afternoon", workerName: "Naomi Achieng", workerInitials: "NA", workerRegion: "Kisumu County",
+      stats, recentHistory, historyList, clinics, tabs, settingsRows,
+      startScreening: this.startScreening,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

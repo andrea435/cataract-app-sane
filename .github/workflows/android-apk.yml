@@ -1,9 +1,12 @@
 name: Android APK
 
 # Builds a standalone release APK of the mobile app (no Expo Go needed).
-# Run it from the Actions tab ("Run workflow"), or push a tag like v1.0.0.
+# Run it from the Actions tab ("Run workflow"), push a tag like v1.0.0, or open a PR
+# that touches the app. The APK is attached to the run as a downloadable artifact.
 on:
   workflow_dispatch:
+  pull_request:
+    paths: ['mobile/**', '.github/workflows/android-apk.yml']
   push:
     tags: ['v*']
 

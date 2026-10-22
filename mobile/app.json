@@ -13,6 +13,8 @@
       }
     },
     "android": {
+      "package": "com.andrea435.cataractscreening",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -29,9 +31,11 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Camera access is needed to capture front-of-eye images for cataract screening."
+          "cameraPermission": "Camera access is needed to capture front-of-eye images for cataract screening.",
+          "recordAudioAndroid": false
         }
-      ]
+      ],
+      "./plugins/withReleaseSigning"
     ]
   }
 }

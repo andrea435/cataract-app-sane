@@ -26,6 +26,12 @@ camera, so use a physical device or Android emulator's virtual camera to test ca
 `.env` already contains the Supabase project URL and anon (public) key needed to run out
 of the box — these are safe to ship client-side, access is meant to be governed by RLS.
 
+## Standalone Android APK
+
+To build an installable APK that runs without Expo Go, see
+[docs/android-build.md](docs/android-build.md). Short version: run the **Android APK**
+GitHub Action, or `npm run build:apk` locally, or `npx eas-cli build -p android --profile preview`.
+
 ## Known scope limitations (by design, for this iteration)
 
 - **No authentication.** There's a single implied worker (seeded in `worker_settings`),

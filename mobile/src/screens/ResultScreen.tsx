@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '../components/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -8,14 +8,17 @@ import { colors } from '../theme/colors';
 import { useScreening } from '../state/ScreeningContext';
 import { BackLink, PrimaryButton } from '../components/Buttons';
 import { RingGauge } from '../components/RingGauge';
+import { REFERRAL_STATUSES } from '../data/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Result'>;
 
 export default function ResultScreen({ navigation }: Props) {
-  const { currentResult, viewOnly, setActiveTab } = useScreening();
+  const { currentResult, viewOnly, setActiveTab, history, setReferralStatus } = useScreening();
 
   if (!currentResult) return null;
   const { status } = currentResult;
+  // Referral status can only be tracked once the scan is saved.
+  const patient = currentResult.id ? history.find(h => h.id === currentResult.id)?.patient : undefined;
 
   const back = () => {
     if (viewOnly) {
@@ -59,6 +62,26 @@ export default function ResultScreen({ navigation }: Props) {
           </View>
           <Text style={styles.thumbLabel}>captured{'\n'}eye image</Text>
         </View>
+
+        {patient && (
+          <View style={styles.referralCard}>
+            <Text style={styles.referralTitle}>Referral status</Text>
+            <View style={styles.referralOptions}>
+              {REFERRAL_STATUSES.map(opt => {
+                const active = patient.referral_status === opt.value;
+                return (
+                  <Pressable
+                    key={opt.value}
+                    style={[styles.referralOption, active && styles.referralOptionActive]}
+                    onPress={() => setReferralStatus(patient.id, active ? null : opt.value)}
+                  >
+                    <Text style={[styles.referralOptionText, active && styles.referralOptionTextActive]}>{opt.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        )}
 
         <PrimaryButton label="View recommended steps" onPress={() => navigation.navigate('Recommend')} />
       </ScrollView>
@@ -132,6 +155,43 @@ const styles = StyleSheet.create({
   thumbPlaceholder: {
     flex: 1,
     backgroundColor: colors.placeholderStripe,
+  },
+  referralCard: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 22,
+  },
+  referralTitle: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: colors.textLabel,
+    marginBottom: 10,
+  },
+  referralOptions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  referralOption: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.cardBg,
+  },
+  referralOptionActive: {
+    borderColor: colors.brand,
+    backgroundColor: colors.brandTint,
+  },
+  referralOptionText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: colors.textMuted,
+  },
+  referralOptionTextActive: {
+    color: colors.brandDark,
   },
   thumbLabel: {
     fontSize: 11.5,

@@ -1,5 +1,25 @@
 export type Eye = 'Left' | 'Right';
 
+export type ReferralStatus = 'referred' | 'attended' | 'treated';
+
+export const REFERRAL_STATUSES: { value: ReferralStatus; label: string }[] = [
+  { value: 'referred', label: 'Referred' },
+  { value: 'attended', label: 'Attended' },
+  { value: 'treated', label: 'Treated' },
+];
+
+export function referralLabel(status: ReferralStatus | null): string {
+  return REFERRAL_STATUSES.find(s => s.value === status)?.label ?? 'Not referred';
+}
+
+export interface PatientRow {
+  id: string;
+  name: string;
+  external_id: string | null;
+  referral_status: ReferralStatus | null;
+  created_at: string;
+}
+
 export interface ScanRow {
   id: string;
   patient_name: string;
@@ -11,6 +31,8 @@ export interface ScanRow {
   severity: string | null;
   photo_path: string | null;
   worker_name: string;
+  patient_record_id: string | null;
+  patient: PatientRow | null;
   created_at: string;
 }
 

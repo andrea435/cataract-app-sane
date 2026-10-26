@@ -2,10 +2,13 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { File } from 'expo-file-system';
 import { supabase, EYE_CAPTURES_BUCKET } from '../lib/supabase';
 import { colors } from '../theme/colors';
-import { ClinicRow, DisplayResult, Eye, ScanRow, WorkerSettingsRow, statusFields } from '../data/types';
+import { ClinicRow, DisplayResult, Eye, ReferralStatus, ScanRow, WorkerSettingsRow, statusFields } from '../data/types';
 import { formatDate, formatScannedAt } from '../data/format';
 
 export type TabKey = 'scan' | 'history' | 'clinics' | 'profile';
+
+// Scans come back with their linked patient embedded.
+const SCAN_SELECT = '*, patient:patients(*)';
 
 function publicPhotoUrl(path: string | null): string | null {
   if (!path) return null;
@@ -33,6 +36,7 @@ interface ScreeningContextValue {
   refreshAll: () => Promise<void>;
   bookClinic: (id: string) => Promise<void>;
   toggleNotifications: () => Promise<void>;
+  setReferralStatus: (patientId: string, status: ReferralStatus | null) => Promise<void>;
 
   activeTab: TabKey;
   setActiveTab: (t: TabKey) => void;
@@ -82,7 +86,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
 
   const refreshAll = useCallback(async () => {
     const [historyRes, clinicsRes, settingsRes] = await Promise.all([
-      supabase.from('scans').select('*').order('scanned_at', { ascending: false }).order('created_at', { ascending: false }),
+      supabase.from('scans').select(SCAN_SELECT).order('scanned_at', { ascending: false }).order('created_at', { ascending: false }),
       supabase.from('clinics').select('*').order('distance', { ascending: true }),
       supabase.from('worker_settings').select('*').eq('id', 1).maybeSingle(),
     ]);
@@ -106,6 +110,14 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
     setSettings(prev => (prev ? { ...prev, notifications_enabled: next } : prev));
     await supabase.from('worker_settings').update({ notifications_enabled: next }).eq('id', 1);
   }, [settings]);
+
+  const setReferralStatus = useCallback(async (patientId: string, status: ReferralStatus | null) => {
+    // A patient can have several scans; keep every history row in sync.
+    setHistory(prev =>
+      prev.map(s => (s.patient_record_id === patientId && s.patient ? { ...s, patient: { ...s.patient, referral_status: status } } : s))
+    );
+    await supabase.from('patients').update({ referral_status: status }).eq('id', patientId);
+  }, []);
 
   const resetDraft = useCallback(() => {
     setPatientName('');
@@ -147,11 +159,20 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
     }
     setSaving(true);
     try {
+      // Reuse the patient record when the worker entered a known patient ID; otherwise create one.
+      const externalId = patientId.trim() || null;
+      const { data: patient } = await supabase
+        .from('patients')
+        .upsert({ name: r.name, external_id: externalId }, { onConflict: 'external_id' })
+        .select('id')
+        .single();
+
       const { data: inserted, error } = await supabase
         .from('scans')
         .insert({
+          patient_record_id: patient?.id ?? null,
           patient_name: r.name,
-          patient_id: patientId.trim() || null,
+          patient_id: externalId,
           eye_label: r.eyeLabel,
           scanned_at: new Date().toISOString().slice(0, 10),
           probability: r.probability,
@@ -159,7 +180,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
           severity: r.status.severity,
           worker_name: settings?.worker_name ?? 'Naomi Achieng',
         })
-        .select('*')
+        .select(SCAN_SELECT)
         .single();
 
       if (!error && inserted) {
@@ -190,7 +211,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<ScreeningContextValue>(
     () => ({
-      history, clinics, settings, loading, refreshAll, bookClinic, toggleNotifications,
+      history, clinics, settings, loading, refreshAll, bookClinic, toggleNotifications, setReferralStatus,
       activeTab, setActiveTab,
       patientName, setPatientName, patientId, setPatientId, eye, setEye,
       disclaimerChecked, setDisclaimerChecked, capturedPhotoUri, setCapturedPhotoUri, resetDraft,
@@ -198,7 +219,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
       saving, finishAndSave,
     }),
     [
-      history, clinics, settings, loading, refreshAll, bookClinic, toggleNotifications,
+      history, clinics, settings, loading, refreshAll, bookClinic, toggleNotifications, setReferralStatus,
       activeTab,
       patientName, patientId, eye, disclaimerChecked, capturedPhotoUri, resetDraft,
       currentResult, viewOnly, computeCurrentResult, viewHistoryItem,

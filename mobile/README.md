@@ -3,7 +3,7 @@
 Expo / React Native (TypeScript) app for community health workers doing field cataract
 screening. It implements the `Cataract Screening App.dc.html` design in `../project/`.
 
-Other docs: [user guide](docs/user-guide.md) · [data model](docs/data-model.md) ·
+Other docs: [closing the treatment gap](docs/impact.md) · [user guide](docs/user-guide.md) · [data model](docs/data-model.md) ·
 [building the Android APK](docs/android-build.md).
 
 ## Stack

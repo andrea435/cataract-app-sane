@@ -5,7 +5,8 @@ field. The worker enters the patient's details, photographs the front of the eye
 phone camera, and gets a cataract probability score, a suggested severity, and recommended
 next steps. Every screening is saved to a shared history, patients flagged for cataract can
 be referred to a nearby clinic, and their referral is tracked from **referred** to
-**attended** to **treated**.
+**attended** to **treated**, so patients found in the community actually reach surgery.
+See [Closing the treatment gap](mobile/docs/impact.md).
 
 > **Screening aid, not a diagnosis.** The app is meant to help prioritise referrals. Every
 > positive result must be confirmed by an ophthalmologist or trained eye care professional.
@@ -16,6 +17,7 @@ be referred to a nearby clinic, and their referral is tracked from **referred** 
 
 | Document | For | What's in it |
 | --- | --- | --- |
+| [Closing the treatment gap](mobile/docs/impact.md) | Partners, funders, health programmes | Why patients get lost between screening and surgery, how the app closes that gap, and how it can scale globally |
 | [User guide](mobile/docs/user-guide.md) | Health workers, trainers | Installing the app and doing a screening step by step |
 | [Developer guide](mobile/README.md) | Developers | Running the app, project structure, how data flows |
 | [Data model](mobile/docs/data-model.md) | Developers | Supabase tables, storage bucket and access rules |
@@ -25,10 +27,10 @@ be referred to a nearby clinic, and their referral is tracked from **referred** 
 
 ```
 mobile/                 The app (Expo / React Native, TypeScript)
-  docs/                 User guide, data model, Android build guide
+  docs/                 Impact, user guide, data model, Android build guide
 supabase/migrations/    SQL migrations for the backend database
 .github/workflows/      "Android APK" build on GitHub Actions
-project/                Original HTML design prototype (and HANDOFF.md, the design handoff note)
+project/                Original HTML design prototype and handoff note
 chats/                  Design conversation that produced the prototype
 ```
 

@@ -6,6 +6,7 @@ import { colors } from '../../theme/colors';
 import { useScreening } from '../../state/ScreeningContext';
 import { formatScannedAt } from '../../data/format';
 import { RootStackParamList } from '../../navigation/types';
+import { referralLabel } from '../../data/types';
 
 export default function HistoryTab({ navigation }: { navigation: NativeStackNavigationProp<RootStackParamList, 'Main'> }) {
   const { history, viewHistoryItem } = useScreening();
@@ -26,6 +27,7 @@ export default function HistoryTab({ navigation }: { navigation: NativeStackNavi
               <Text style={styles.rowMeta}>
                 {formatScannedAt(item.scanned_at)} · {item.eye_label}
               </Text>
+              {item.patient?.referral_status && <Text style={styles.referral}>{referralLabel(item.patient.referral_status)}</Text>}
             </View>
             <View style={{ alignItems: 'flex-end' }}>
               <View style={[styles.pill, { backgroundColor: item.detected ? colors.dangerBg : colors.successBg }]}>
@@ -56,6 +58,7 @@ const styles = StyleSheet.create({
   },
   rowName: { fontSize: 14, fontWeight: '600', color: colors.ink },
   rowMeta: { fontSize: 12, color: colors.textSubtle, marginTop: 3 },
+  referral: { fontSize: 11.5, fontWeight: '600', color: colors.brandDark, marginTop: 3 },
   pill: { paddingVertical: 5, paddingHorizontal: 10, borderRadius: 16 },
   pillText: { fontSize: 11.5, fontWeight: '700' },
   confidence: { fontSize: 11, color: colors.textSubtle, marginTop: 4 },

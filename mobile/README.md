@@ -1,57 +1,119 @@
-# Cataract Screening — mobile app
+# Cataract Screening: developer guide
 
-Expo / React Native implementation of the `Cataract Screening App.dc.html` design
-(from `../project/`), built for community health workers doing field eye screening.
+Expo / React Native (TypeScript) app for community health workers doing field cataract
+screening. It implements the `Cataract Screening App.dc.html` design in `../project/`.
+
+Other docs: [user guide](docs/user-guide.md) · [data model](docs/data-model.md) ·
+[building the Android APK](docs/android-build.md).
 
 ## Stack
 
-- **Expo (React Native, TypeScript)** — `expo-camera` for the real device camera capture,
-  `@react-navigation/native-stack` for the screen flow, `react-native-svg` for the ring
-  gauge and icons, `@expo-google-fonts/ibm-plex-sans` for the design's typeface.
-- **Supabase** — a dedicated project (`cataract-screening-app`) backs scan history,
-  referral clinics, and worker settings. Schema: `scans`, `clinics`, `worker_settings`
-  tables, plus a public `eye-captures` storage bucket for captured eye photos.
+- **Expo SDK 57** (React Native 0.86, React 19). Expo changes between versions; check the
+  [v57 docs](https://docs.expo.dev/versions/v57.0.0/) before adding or upgrading packages.
+- `expo-camera` for capturing the eye photo, `expo-file-system` to read it for upload.
+- `@react-navigation/native-stack` for the screen flow.
+- `react-native-svg` for the probability ring and icons.
+- `@expo-google-fonts/ibm-plex-sans`, the design's typeface.
+- **Supabase** (`@supabase/supabase-js`) for scans, patients, clinics, worker settings and
+  the `eye-captures` photo bucket. See [data model](docs/data-model.md).
 
 ## Running it
+
+Requires Node 22.
 
 ```
 npm install
 npm start
 ```
 
-Then open in Expo Go on a physical device (needed for the real camera), or run
-`npm run android` / `npm run ios` with a simulator/emulator — note iOS Simulator has no
-camera, so use a physical device or Android emulator's virtual camera to test capture.
+Open the app in **Expo Go** on a physical phone by scanning the QR code (a real camera is
+needed to capture images), or use `npm run android` / `npm run ios` with an emulator or
+simulator. The iOS Simulator has no camera; the Android emulator's virtual camera works.
 
-`.env` already contains the Supabase project URL and anon (public) key needed to run out
-of the box — these are safe to ship client-side, access is meant to be governed by RLS.
+| Script | What it does |
+| --- | --- |
+| `npm start` | Start the Expo dev server |
+| `npm run android` / `npm run ios` / `npm run web` | Start and open on that platform |
+| `npm run build:apk` | Build a standalone release APK locally (needs the Android SDK) |
+| `npm run build:apk:eas` | Build the APK in Expo's cloud (needs an Expo account) |
 
-## Standalone Android APK
+Standalone builds, signing and releases: [docs/android-build.md](docs/android-build.md).
 
-To build an installable APK that runs without Expo Go, see
-[docs/android-build.md](docs/android-build.md). Short version: run the **Android APK**
-GitHub Action, or `npm run build:apk` locally, or `npx eas-cli build -p android --profile preview`.
+### Configuration
 
-## Known scope limitations (by design, for this iteration)
+`.env` (committed) holds `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
+They are inlined into the JS bundle at build time, so changing them needs a rebuild. The
+anon key is designed to be public; access is meant to be governed by Row Level Security.
+To point the app at another Supabase project, change these two values.
 
-- **No authentication.** There's a single implied worker (seeded in `worker_settings`),
-  and Supabase RLS policies currently allow open read/write from the anon key. Fine for a
-  prototype; **add real auth + row-level scoping before this touches real patient data.**
-- **The cataract detection itself is mocked** — capture and Supabase persistence are real,
-  but the probability score is still randomly generated client-side (`computeCurrentResult`
-  in `src/state/ScreeningContext.tsx`), matching the original design. Wiring an actual ML
-  model is a separate follow-up.
-- Clinic "distance" values are static seed data (no real geolocation).
-
-## Structure
+## Screen flow
 
 ```
+Onboarding ─► Main (tabs: Scan · History · Clinics · Profile)
+                │
+                └─ Start new screening
+                     PatientInfo ─► Capture ─► Scanning ─► Disclaimer ─► Result ─► Recommend
+                                                                                     │
+                                                    Finish & save to history ◄───────┘
+History item ─► Result (view only, with referral status) ─► Back to history
+```
+
+- **Onboarding**: three intro slides; Skip or Get started replaces it with Main.
+- **Main**: hosts the four tabs and a custom `BottomTabBar`; the active tab lives in
+  context (`activeTab`) so other screens can send the user to a specific tab.
+- **PatientInfo**: name, optional Patient ID, left/right eye.
+- **Capture**: live camera with alignment ring; requests camera permission.
+- **Scanning**: 2-second animation, then calls `computeCurrentResult`.
+- **Disclaimer**: must tick "screening aid, not a diagnosis" to continue.
+- **Result**: ring gauge, status, severity, photo. For saved scans it also shows the
+  patient's **Referral status** selector (Referred / Attended / Treated).
+- **Recommend**: next steps (different lists for detected / clear), **Find nearby clinic**
+  when detected, and **Finish & save to history**.
+
+## How it works
+
+`src/state/ScreeningContext.tsx` is the single source of state and all Supabase I/O:
+
+- Loaded data: `history` (scans with their patient), `clinics`, `settings`.
+- The in-progress screening draft: patient name/ID, eye, disclaimer tick, photo URI.
+- `computeCurrentResult()` produces the result to display. **Today it is a random
+  probability (8–97%).** This is the function to replace when a real model is added.
+- `finishAndSave()` upserts the patient, inserts the scan, uploads the photo, then resets
+  the draft.
+- `setReferralStatus()` updates the patient and every history row for that patient.
+
+Result classification is in `statusFields()` (`src/data/types.ts`): `< 50%` clear,
+`50–64` Mild, `65–79` Moderate, `80+` Severe. Text content (onboarding, recommended
+steps, disclaimer) is in `src/data/content.ts`.
+
+## Project structure
+
+```
+App.tsx                      Fonts, splash screen, providers, navigator
+app.json                     Expo config (app name, version, Android package, permissions)
+eas.json                     EAS build profiles
+plugins/withReleaseSigning.js  Adds Android release signing during prebuild
 src/
-  theme/colors.ts       oklch(...) values from the design, converted to hex 1:1
-  data/                 types, status/severity logic, seed content, stats
-  lib/supabase.ts       Supabase client
-  state/ScreeningContext.tsx   flow state + all Supabase reads/writes
-  navigation/           stack navigator + route types
-  screens/              one file per design screen; screens/main/ holds the 4 tabs
-  components/           shared Button/RingGauge/icon/Text primitives
+  theme/colors.ts            Design colours (oklch from the design, converted to hex)
+  data/                      Types, result classification, static content, stats, date formatting
+  lib/supabase.ts            Supabase client and bucket name
+  state/ScreeningContext.tsx Flow state and all Supabase reads/writes
+  navigation/                Stack navigator and route types
+  screens/                   One file per screen; screens/main/ holds the four tabs
+  components/                Buttons, RingGauge, icons, Text (applies the font)
+docs/                        User guide, data model, Android build guide
 ```
+
+## Known limitations
+
+- **Detection is mocked**: capture and saving are real, the score is random.
+- **No authentication**: one implied worker (`worker_settings` row 1) and open RLS
+  policies. Add real auth and per-row access rules before handling real patient data.
+- **Find nearby clinic** navigates to the Clinics tab without saving the screening, and
+  the draft can't be resumed. Users must tap Finish & save first.
+- **Refer patient** on a clinic sets `clinics.booked_at` for the clinic as a whole; it is
+  not linked to a patient or scan (`scans.clinic_id` exists but isn't used yet).
+- Clinic distances are static; the Language, Sync data, Help & support and Log out
+  settings are not wired up.
+- No offline mode: screenings need a connection to save.
+- There are no automated tests yet.

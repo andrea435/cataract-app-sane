@@ -1,25 +1,58 @@
-# CODING AGENTS: READ THIS FIRST
+# Cataract Screening
 
-This is a **handoff bundle** from Claude Design (claude.ai/design).
+A mobile app that helps community health workers screen patients for cataracts in the
+field. The worker enters the patient's details, photographs the front of the eye with the
+phone camera, and gets a cataract probability score, a suggested severity, and recommended
+next steps. Every screening is saved to a shared history, patients flagged for cataract can
+be referred to a nearby clinic, and their referral is tracked from **referred** to
+**attended** to **treated**, so patients found in the community actually reach surgery.
+See [Closing the treatment gap](mobile/docs/impact.md).
 
-A user mocked up designs in HTML/CSS/JS using an AI design tool, then exported this bundle so a coding agent can implement the designs for real.
+> **Screening aid, not a diagnosis.** The app is meant to help prioritise referrals. Every
+> positive result must be confirmed by an ophthalmologist or trained eye care professional.
+> In the current version the probability score is **simulated** (see
+> [Current limitations](#current-limitations)).
 
-## What you should do — IMPORTANT
+## Documentation
 
-**Read the chat transcripts first.** There are 1 chat transcript(s) in `chats/`. The transcripts show the full back-and-forth between the user and the design assistant — they tell you **what the user actually wants** and **where they landed** after iterating. Don't skip them. The final HTML files are the output, but the chat is where the intent lives.
+| Document | For | What's in it |
+| --- | --- | --- |
+| [Closing the treatment gap](mobile/docs/impact.md) | Partners, funders, health programmes | Why patients get lost between screening and surgery, how the app closes that gap, and how it can scale globally |
+| [User guide](mobile/docs/user-guide.md) | Health workers, trainers | Installing the app and doing a screening step by step |
+| [Developer guide](mobile/README.md) | Developers | Running the app, project structure, how data flows |
+| [Data model](mobile/docs/data-model.md) | Developers | Supabase tables, storage bucket and access rules |
+| [Building the Android APK](mobile/docs/android-build.md) | Developers, release managers | Producing and signing an installable APK, shipping updates |
 
-**Read `project/Cataract Screening App.dc.html` in full.** The user had this file open when they triggered the handoff, so it's almost certainly the primary design they want built. Read it top to bottom — don't skim. Then **follow its imports**: open every file it pulls in (shared components, CSS, scripts) so you understand how the pieces fit together before you start implementing.
+## Repository layout
 
-**If anything is ambiguous, ask the user to confirm before you start implementing.** It's much cheaper to clarify scope up front than to build the wrong thing.
+```
+mobile/                 The app (Expo / React Native, TypeScript)
+  docs/                 Impact, user guide, data model, Android build guide
+supabase/migrations/    SQL migrations for the backend database
+.github/workflows/      "Android APK" build on GitHub Actions
+project/                Original HTML design prototype and handoff note
+chats/                  Design conversation that produced the prototype
+```
 
-## About the design files
+## Quick start
 
-The design medium is **HTML/CSS/JS** — these are prototypes, not production code. Your job is to **recreate them pixel-perfectly** in whatever technology makes sense for the target codebase (React, Vue, native, whatever fits). Match the visual output; don't copy the prototype's internal structure unless it happens to fit.
+```
+cd mobile
+npm install
+npm start
+```
 
-**Don't render these files in a browser or take screenshots unless the user asks you to.** Everything you need — dimensions, colors, layout rules — is spelled out in the source. Read the HTML and CSS directly; a screenshot won't tell you anything they don't.
+Scan the QR code with Expo Go on a phone. To get a standalone app that installs like any
+other, use **Actions → Android APK → Run workflow** on GitHub and download the APK from the
+finished run. Details in [Building the Android APK](mobile/docs/android-build.md).
 
-## Bundle contents
+## Current limitations
 
-- `README.md` — this file
-- `chats/` — conversation transcripts (read these!)
-- `project/` — the `Cataract Detection App Design` project files (HTML prototypes, assets, components)
+- **The detection is simulated.** Camera capture, photo upload and saving are real, but the
+  probability score is a random number generated on the phone. A trained model still needs
+  to be plugged in.
+- **No sign-in.** There is one implied health worker, and the database allows open read and
+  write with the public key. Add authentication and per-user access rules before using the
+  app with real patient data.
+- **Clinic distances are fixed** sample values, not based on the phone's location.
+- Profile items such as Language, Sync data, Help & support and Log out are visual only.

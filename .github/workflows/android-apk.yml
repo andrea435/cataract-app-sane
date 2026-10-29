@@ -1,18 +1,43 @@
 name: Android APK
 
 # Builds a standalone release APK of the mobile app (no Expo Go needed).
-# Run it from the Actions tab ("Run workflow"), push a tag like v1.0.0, or open a PR
-# that touches the app. The APK is attached to the run as a downloadable artifact.
+#
+# - Every merge to main that changes the app builds it and publishes it to the
+#   `apk-latest` release, so this link always downloads the newest APK:
+#   https://github.com/andrea435/cataract-app-sane/releases/download/apk-latest/cataract-screening.apk
+# - PRs that change the app build it too (download it from the run's artifacts),
+#   but don't touch the published link.
+# - "Run workflow" on the Actions tab, or a pushed v* tag, builds and publishes as well.
+# Changes that only touch docs or Markdown files don't trigger a build.
 on:
   workflow_dispatch:
   pull_request:
-    paths: ['mobile/**', '.github/workflows/android-apk.yml']
+    paths:
+      - 'mobile/**'
+      - '!mobile/docs/**'
+      - '!mobile/**/*.md'
+      - '.github/workflows/android-apk.yml'
   push:
+    branches: [main]
     tags: ['v*']
+    paths:
+      - 'mobile/**'
+      - '!mobile/docs/**'
+      - '!mobile/**/*.md'
+      - '.github/workflows/android-apk.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
     defaults:
       run:
         working-directory: mobile
@@ -35,6 +60,20 @@ jobs:
 
       - run: npm ci
 
+      # Each build gets a higher versionCode than the last, so a newer APK always
+      # installs over an older one. The visible version still comes from app.json.
+      - name: Set versionCode from the run number
+        run: |
+          node -e "
+            const fs = require('fs');
+            const cfg = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+            const android = cfg.expo.android;
+            android.versionCode = Math.max(android.versionCode, Number(process.env.GITHUB_RUN_NUMBER));
+            fs.writeFileSync('app.json', JSON.stringify(cfg, null, 2));
+            fs.appendFileSync(process.env.GITHUB_ENV,
+              'APP_VERSION=' + cfg.expo.version + '\nVERSION_CODE=' + android.versionCode + '\n');
+          "
+
       - name: Generate native Android project
         run: npx expo prebuild --platform android --clean --no-install
 
@@ -42,9 +81,9 @@ jobs:
       # ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
       # Without them the APK is signed with the debug key, which installs fine for testing.
       - name: Restore upload keystore
+        if: env.HAS_KEYSTORE == 'true'
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-        if: env.ANDROID_KEYSTORE_BASE64 != ''
         run: |
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload.keystore
           echo "CATARACT_UPLOAD_STORE_FILE=upload.keystore" >> "$GITHUB_ENV"
@@ -61,3 +100,22 @@ jobs:
         with:
           name: cataract-screening-apk
           path: mobile/android/app/build/outputs/apk/release/app-release.apk
+
+      # Replace the `apk-latest` release so its fixed download link points at this build.
+      - name: Publish to the download link
+        if: github.event_name != 'pull_request'
+        working-directory: mobile/android/app/build/outputs/apk/release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app-release.apk cataract-screening.apk
+          link="https://github.com/$GITHUB_REPOSITORY/releases/download/apk-latest/cataract-screening.apk"
+          printf 'Latest Android build of Cataract Screening: version %s (build %s), commit %s.\n\nOn an Android phone, open this link to download and install it:\n%s\n' \
+            "$APP_VERSION" "$VERSION_CODE" "$GITHUB_SHA" "$link" > notes.md
+          gh release delete apk-latest --cleanup-tag --yes --repo "$GITHUB_REPOSITORY" || true
+          gh release create apk-latest cataract-screening.apk \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Cataract Screening $APP_VERSION (Android)" \
+            --notes-file notes.md \
+            --latest

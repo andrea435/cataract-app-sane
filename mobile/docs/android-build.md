@@ -9,12 +9,28 @@ Once the app is published on the Play Store this id can never change.
 
 There are three ways to build it. Pick one.
 
+## Just want the app? Use the download link
+
+Open this on an Android phone to download the newest APK:
+
+https://github.com/andrea435/cataract-app-sane/releases/download/apk-latest/cataract-screening.apk
+
+That link always points at the latest build of `main`. You can share it, put it in a QR
+code, or send it over WhatsApp.
+
 ## Option A: GitHub Actions (no setup on your machine)
 
-1. On GitHub, open **Actions → Android APK → Run workflow**.
-   (Pushing a tag such as `v1.0.0` also runs it.)
-2. When it finishes (about 10–15 minutes), open the run and download the
-   **cataract-screening-apk** artifact. It's a zip containing `app-release.apk`.
+The **Android APK** workflow runs on its own:
+
+- **Merge to main** that changes the app: builds the APK and replaces the file behind the
+  download link above (the `apk-latest` release). Takes about 15 minutes.
+- **Pull request** that changes the app: builds the APK so you can test it before merging.
+  Download it from the run's **cataract-screening-apk** artifact (a zip containing
+  `app-release.apk`). The download link isn't touched.
+- Changes that only touch docs or `.md` files don't trigger a build.
+
+To build by hand, open **Actions → Android APK → Run workflow** (this also updates the
+download link). Pushing a tag such as `v1.0.0` does the same.
 
 ## Option B: Expo EAS cloud build
 
@@ -88,8 +104,10 @@ release signing config every time `expo prebuild` regenerates `android/`.
 
 ## Shipping an update
 
-Bump `expo.version` (shown to users, e.g. `1.0.1`) and `expo.android.versionCode`
-(an integer that must go up by at least 1 every release) in `app.json`, then rebuild.
+Bump `expo.version` in `app.json` (the version users see, e.g. `1.0.2`), then merge.
+GitHub Actions builds set `expo.android.versionCode` to the run number, so each build
+installs over the previous one. For local or EAS builds, bump `expo.android.versionCode`
+in `app.json` yourself (it must go up by at least 1 every release).
 
 ## Play Store
 

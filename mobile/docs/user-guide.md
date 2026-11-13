@@ -25,8 +25,16 @@ because it is stored online, not on the phone.
 
 ## 2. First launch
 
-Three welcome screens explain what the app does. Tap **Next** to read them, or **Skip** to
-go straight to the app.
+Three welcome screens explain what the app does. Tap **Next** to read them, or **Skip**.
+Then **sign in** with the email and password a health worker on your team gave you. The
+app keeps you signed in until you log out.
+
+Health workers and clinic staff use the same app; what you see depends on your account.
+Clinic staff, see [section 6](#6-for-clinic-staff-the-clinic-view).
+
+**Setting up the app for the first time.** When no accounts exist yet, the sign-in screen
+shows **Create first account**. The person setting up the programme uses it once to create
+their own admin health worker account, then adds everyone else from inside the app.
 
 ## 3. The main screen
 
@@ -36,7 +44,7 @@ The app has four tabs at the bottom.
 | --- | --- |
 | **Scan** | Your screenings today, how many were flagged for referral, the **Start new screening** button, and your three most recent screenings |
 | **History** | Every screening saved, newest first, with result, confidence and referral status |
-| **Clinics** | Nearby clinics for referral, with address and phone number |
+| **Clinics** | The clinics you refer to (add and edit them here) and every referral you have sent, with its status |
 | **Profile** | Your name and region, your total, flagged and this-week counts, and settings |
 
 ## 4. Doing a screening
@@ -106,47 +114,96 @@ The app lists what to do next.
 - **No cataract detected:** no referral needed now, advise routine eye protection, and
   schedule a routine screening in 12 months.
 
-Tap **Finish & save to history**. The screening and photo are saved and appear in History.
+- **Cataract detected:** tap **Refer to a clinic** to save the screening and send the
+  patient to a clinic in one go (see below), or **Save without referring**.
+- **No cataract detected:** tap **Finish & save to history**.
 
-> **Save before looking for a clinic.** When a cataract is detected, the screen also shows
-> **Find nearby clinic**. In the current version, tapping it opens the Clinics tab
-> **without saving the screening**. Tap **Finish & save to history** first, then go to the
-> Clinics tab.
+The screening and photo are saved and appear in History.
 
-## 5. Referring a patient and tracking the referral
+## 5. Clinics and referrals
 
-1. Open the **Clinics** tab. Clinics are listed nearest first, with their address and phone
-   number.
-2. Tap **Refer patient** on the clinic you are sending the patient to. The button changes
-   to **Referral sent**. (In this version this marks the clinic, not a specific patient.)
-3. Track the patient's progress: open the **History** tab, tap the patient's screening,
-   and under **Referral status** choose:
-   - **Referred**: the patient has been sent to a clinic.
-   - **Attended**: the patient went to the clinic.
-   - **Treated**: the patient received treatment.
+### Adding clinics
 
-   Tap the selected status again to clear it ("Not referred").
+Open the **Clinics** tab and tap **Add**. Enter the clinic's name, and if you like its
+address, phone number and distance, then tap **Add clinic**.
 
-The referral status belongs to the patient, not to one screening, so every screening of
-that patient shows the same status. It also appears under the patient's name in History.
+### Giving clinic staff a login
 
-## 6. Reviewing past screenings
+On the clinic's page (tap the clinic in the Clinics tab), under **Clinic logins**, tap
+**Add**. Enter the staff member's name and email, keep or change the suggested temporary
+password, and tap **Create login**. The next screen shows the email and password: give them
+to the staff member in person or by message. No email is sent, and the password isn't shown
+again. If it's lost, tap **Remove** next to the login and create a new one.
+
+A clinic card shows "No logins yet" until its staff have a login.
+
+Tap a clinic to edit it, manage its logins, or remove it. A clinic that already has
+referrals can't be removed.
+
+### Referring a patient
+
+1. On the recommended steps for a flagged patient, tap **Refer to a clinic**. For a
+   screening that is already saved, open it from History and tap **Refer to a clinic**.
+2. Choose the clinic. You can add a new one from here with **Add clinic**.
+3. Optionally write a note for the clinic, for example how long the patient has had
+   symptoms or whether they need help with transport.
+4. Tap **Save & send referral** (or **Send referral**). The clinic sees the patient in its
+   clinic view straight away.
+
+### Following up
+
+Open the patient's screening from History, or the **Referrals sent** list on the Clinics
+tab. The referral card shows the clinic and a **Referred → Attended → Treated** tracker.
+When the clinic updates the patient, the tracker moves on its own, and any note from the
+clinic appears underneath. If the clinic isn't using the app, you can tap a step yourself
+to record it.
+
+The status also shows under the patient's name in History. It belongs to the patient, so
+every screening of that patient shows the same status.
+
+## 6. For clinic staff: the clinic view
+
+1. Install the app (see [section 1](#1-installing-the-app)).
+2. Sign in with the email and password the health worker gave you. The app opens straight
+   onto your clinic's view, and stays signed in until you tap **Sign out**.
+
+You only ever see patients referred to your own clinic. The first time you sign in, tap
+**Change password** at the bottom of the screen and choose your own password.
+
+The clinic view shows how many patients are **Waiting**, **Attended** and **Treated**, and
+lists them. New referrals appear automatically; pull down to refresh. Tap a patient to see
+their screening result, eye photo, patient ID, who referred them and the health worker's
+note. Then:
+
+- Tap **Mark as attended** when the patient arrives, and **Mark as treated** after
+  treatment. You can also tap a step on the tracker to correct it.
+- Write in **Clinic notes** and tap **Save note**, for example the confirmed diagnosis or
+  a surgery date. The health worker sees the note.
+
+## 7. Reviewing past screenings
 
 Open the **History** tab and tap any screening to see its full result again, including the
 photo. Tap **Back to history** to return. Past screenings cannot be edited or deleted from
 the app.
 
-## 7. Profile and settings
+## 8. Profile and settings
 
 The Profile tab shows your name, region and screening totals. **Notifications** can be
-turned on or off, and **About the AI model** shows the model version. Language, Sync data,
-Help & support and Log out are not active yet.
+turned on or off, and **About the AI model** shows the model version. **Change password**
+lets you replace the temporary password you were given with your own; do this the first
+time you sign in. **Log out** signs you out of this phone. Language, Sync data and Help & support are not active yet.
 
-## 8. Troubleshooting
+**Health workers** lists everyone on your team. Admins (shown with an **Admin** tag) can
+tap **Add** to create a login for a new health worker, in the same way as a clinic login,
+and **Remove** someone who has left. Their past screenings are kept.
+
+## 9. Troubleshooting
 
 | Problem | What to do |
 | --- | --- |
 | "Camera access was denied" | Open phone **Settings → Apps → Cataract Screening → Permissions** and allow Camera, then reopen the app. |
-| History or clinics are empty | Check the phone's internet connection, then close and reopen the app. |
+| History or clinics are empty, or a red "Couldn't reach the server" banner shows | Check the phone's internet connection, then pull down on the screen or tap **Retry**. |
+| "Wrong email or password" | Check the email and password exactly as given (passwords are case sensitive). If it's lost, ask a health worker to remove your login and create a new one. |
+| "This account no longer has access" | Your login was removed, or your clinic was removed. Ask a health worker for a new login. |
 | A screening didn't appear in History | It is only saved after **Finish & save to history**. Check the internet connection and screen again. |
 | Android won't install the APK | Allow installs from unknown sources for the app you opened the file with. If an older copy was signed differently, uninstall it first. |

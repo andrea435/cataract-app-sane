@@ -31,6 +31,10 @@ export const colors = {
   successDark: '#00682a', // oklch(45% 0.13 150)
   successBg: '#dbeede', // oklch(93% 0.03 150)
 
+  // Added for the referral "attended" state; same lightness as danger/success, warm hue.
+  warning: '#8a5a12', // oklch(50% 0.1 70)
+  warningBg: '#f6e8d2', // oklch(93% 0.035 75)
+
   border: '#d3d8dc', // oklch(88% 0.008 235)
   borderSoft: '#e1e5e8', // oklch(92% 0.006 235)
   divider: '#e4e9eb', // oklch(93% 0.006 235)

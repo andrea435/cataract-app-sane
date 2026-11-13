@@ -3,9 +3,10 @@
 A mobile app that helps community health workers screen patients for cataracts in the
 field. The worker enters the patient's details, photographs the front of the eye with the
 phone camera, and gets a cataract probability score, a suggested severity, and recommended
-next steps. Every screening is saved to a shared history, patients flagged for cataract can
-be referred to a nearby clinic, and their referral is tracked from **referred** to
-**attended** to **treated**, so patients found in the community actually reach surgery.
+next steps. Every screening is saved to a shared history, and patients flagged for cataract
+are referred to a chosen clinic. The clinic has its own view in the same app, where staff
+see the patients sent to them and mark each one **attended** and **treated**, so the health
+worker can follow every patient through to surgery.
 See [Closing the treatment gap](mobile/docs/impact.md).
 
 > **Screening aid, not a diagnosis.** The app is meant to help prioritise referrals. Every
@@ -52,8 +53,10 @@ automatically every time an app change is merged into main. Details in
 - **The detection is simulated.** Camera capture, photo upload and saving are real, but the
   probability score is a random number generated on the phone. A trained model still needs
   to be plugged in.
-- **No sign-in.** There is one implied health worker, and the database allows open read and
-  write with the public key. Add authentication and per-user access rules before using the
-  app with real patient data.
-- **Clinic distances are fixed** sample values, not based on the phone's location.
+- **Accounts are basic.** Health workers and clinic staff sign in with email and password,
+  and the database only shows each clinic its own patients. There is no password reset
+  (remove and recreate the login), and every health worker sees every patient. Check local
+  health data rules (consent, retention, where data is stored) before using real patient
+  data.
+- **Clinic distances are typed in** by the health worker, not based on the phone's location.
 - Profile items such as Language, Sync data, Help & support and Log out are visual only.

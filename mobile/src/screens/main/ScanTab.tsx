@@ -5,13 +5,13 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../../theme/colors';
 import { useScreening } from '../../state/ScreeningContext';
 import { computeStats } from '../../data/stats';
-import { formatScannedAt } from '../../data/format';
+import { formatScannedAt, greetingFor } from '../../data/format';
 import { PrimaryButton } from '../../components/Buttons';
 import { CameraIcon } from '../../components/icons';
 import { RootStackParamList } from '../../navigation/types';
 
 export default function ScanTab({ navigation }: { navigation: NativeStackNavigationProp<RootStackParamList, 'Main'> }) {
-  const { history, settings, resetDraft, viewHistoryItem } = useScreening();
+  const { history, profile, resetDraft, viewHistoryItem } = useScreening();
   const stats = computeStats(history);
   const recent = history.slice(0, 3);
 
@@ -27,8 +27,8 @@ export default function ScanTab({ navigation }: { navigation: NativeStackNavigat
 
   return (
     <View style={styles.padded}>
-      <Text style={styles.greeting}>Good afternoon</Text>
-      <Text style={styles.workerName}>{settings?.worker_name ?? 'Naomi Achieng'}</Text>
+      <Text style={styles.greeting}>{greetingFor()}</Text>
+      <Text style={styles.workerName}>{profile?.full_name ?? ''}</Text>
 
       <View style={styles.statsRow}>
         <View style={styles.statCard}>

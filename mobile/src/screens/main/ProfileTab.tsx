@@ -1,35 +1,38 @@
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '../../components/Text';
 import { colors } from '../../theme/colors';
 import { useScreening } from '../../state/ScreeningContext';
 import { computeStats } from '../../data/stats';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../navigation/types';
 
-function initialsOf(name: string): string {
-  return name
-    .split(' ')
-    .filter(Boolean)
-    .map(p => p[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-}
+import { initialsOf } from '../../data/types';
 
-export default function ProfileTab() {
-  const { history, settings, toggleNotifications } = useScreening();
+export default function ProfileTab({ navigation }: { navigation: NativeStackNavigationProp<RootStackParamList, 'Main'> }) {
+  const { history, settings, profile, accounts, toggleNotifications, signOut } = useScreening();
   const stats = computeStats(history);
-  const workerName = settings?.worker_name ?? 'Naomi Achieng';
-  const initials = settings?.worker_initials ?? initialsOf(workerName);
-  const region = settings?.worker_region ?? 'Kisumu County';
-  const notifOn = settings?.notifications_enabled ?? true;
+  const workerName = profile?.full_name ?? '';
+  const initials = initialsOf(workerName);
+  const region = profile?.region;
+  const notifOn = profile?.notifications_enabled ?? true;
+  const workerCount = accounts.filter(a => a.role === 'worker').length;
 
-  const rows: { label: string; value?: string; isToggle?: boolean }[] = [
+  const confirmSignOut = () =>
+    Alert.alert('Log out?', 'You will need your email and password to sign in again.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Log out', style: 'destructive', onPress: signOut },
+    ]);
+
+  const rows: { label: string; value?: string; isToggle?: boolean; onPress?: () => void; danger?: boolean }[] = [
+    { label: 'Health workers', value: workerCount ? String(workerCount) : undefined, onPress: () => navigation.navigate('Team') },
+    { label: 'Change password', onPress: () => navigation.navigate('ChangePassword') },
     { label: 'Language', value: 'English' },
     { label: 'Sync data', value: 'Auto' },
     { label: 'Notifications', isToggle: true },
     { label: 'About the AI model', value: settings?.ai_model_version ?? 'v2.3' },
     { label: 'Help & support' },
-    { label: 'Log out' },
+    { label: 'Log out', onPress: confirmSignOut, danger: true },
   ];
 
   return (
@@ -40,7 +43,10 @@ export default function ProfileTab() {
         </View>
         <View>
           <Text style={styles.name}>{workerName}</Text>
-          <Text style={styles.role}>Community Health Worker · {region}</Text>
+          <Text style={styles.role}>
+            {profile?.is_admin ? 'Health worker · Admin' : 'Community Health Worker'}
+            {region ? ` · ${region}` : ''}
+          </Text>
         </View>
       </View>
 
@@ -61,16 +67,16 @@ export default function ProfileTab() {
 
       <View>
         {rows.map((row, i) => (
-          <View key={i} style={styles.settingRow}>
-            <Text style={styles.settingLabel}>{row.label}</Text>
+          <Pressable key={i} style={styles.settingRow} onPress={row.onPress} disabled={!row.onPress}>
+            <Text style={[styles.settingLabel, row.danger && { color: colors.danger }]}>{row.label}</Text>
             {row.isToggle ? (
               <Pressable onPress={toggleNotifications} style={[styles.toggle, { backgroundColor: notifOn ? colors.brand : colors.border }]}>
                 <View style={[styles.toggleKnob, { left: notifOn ? 19 : 2 }]} />
               </Pressable>
             ) : (
-              <Text style={styles.settingValue}>{row.value ? `${row.value} ›` : '›'}</Text>
+              <Text style={styles.settingValue}>{row.danger ? '' : row.value ? `${row.value} ›` : '›'}</Text>
             )}
-          </View>
+          </Pressable>
         ))}
       </View>
     </View>

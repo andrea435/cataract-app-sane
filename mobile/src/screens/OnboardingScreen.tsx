@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '../components/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -16,7 +16,7 @@ export default function OnboardingScreen({ navigation }: Props) {
   const slide = ONBOARD_SLIDES[step];
   const isLast = step >= ONBOARD_SLIDES.length - 1;
 
-  const finish = () => navigation.replace('Main');
+  const finish = () => navigation.navigate('SignIn');
   const next = () => (isLast ? finish() : setStep(s => s + 1));
 
   return (
@@ -49,6 +49,12 @@ export default function OnboardingScreen({ navigation }: Props) {
           <PrimaryButton label={slide.cta} onPress={next} />
         </View>
       </View>
+
+      <Pressable onPress={finish} hitSlop={8} style={styles.clinicLink}>
+        <Text style={styles.clinicLinkText}>
+          Health worker or clinic staff? <Text style={styles.clinicLinkStrong}>Sign in</Text>
+        </Text>
+      </Pressable>
     </SafeAreaView>
   );
 }
@@ -103,5 +109,19 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     gap: 12,
+  },
+  clinicLink: {
+    alignSelf: 'center',
+    paddingTop: 16,
+    paddingBottom: 4,
+  },
+  clinicLinkText: {
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  clinicLinkStrong: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.brand,
   },
 });

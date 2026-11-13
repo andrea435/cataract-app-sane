@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, IBMPlexSans_400Regular, IBMPlexSans_500Medium, IBMPlexSans_600SemiBold, IBMPlexSans_700Bold } from '@expo-google-fonts/ibm-plex-sans';
-import { ScreeningProvider } from './src/state/ScreeningContext';
+import { ScreeningProvider, useScreening } from './src/state/ScreeningContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import { colors } from './src/theme/colors';
 
@@ -19,23 +19,34 @@ export default function App() {
     IBMPlexSans_700Bold,
   });
 
-  const onLayout = useCallback(() => {
-    if (fontsLoaded) SplashScreen.hideAsync().catch(() => {});
-  }, [fontsLoaded]);
-
   if (!fontsLoaded) return null;
 
   return (
     <SafeAreaProvider>
       <ScreeningProvider>
-        <View style={styles.root} onLayout={onLayout}>
-          <StatusBar style="dark" />
-          <NavigationContainer>
-            <RootNavigator />
-          </NavigationContainer>
-        </View>
+        <AppShell />
       </ScreeningProvider>
     </SafeAreaProvider>
+  );
+}
+
+// Keeps the splash screen up until we know whether someone is already signed in, so the
+// app opens straight onto the right screen instead of flashing the sign-in screen.
+function AppShell() {
+  const { authReady } = useScreening();
+  const onLayout = useCallback(() => {
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
+
+  if (!authReady) return null;
+
+  return (
+    <View style={styles.root} onLayout={onLayout}>
+      <StatusBar style="dark" />
+      <NavigationContainer>
+        <RootNavigator />
+      </NavigationContainer>
+    </View>
   );
 }
 

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
@@ -8,8 +8,10 @@ import { useFonts, IBMPlexSans_400Regular, IBMPlexSans_500Medium, IBMPlexSans_60
 import { ScreeningProvider, useScreening } from './src/state/ScreeningContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import { colors } from './src/theme/colors';
+import { AlertData, listenForAlertTaps, navigationRef, setupAlerts } from './src/lib/alerts';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+setupAlerts();
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -33,7 +35,34 @@ export default function App() {
 // Keeps the splash screen up until we know whether someone is already signed in, so the
 // app opens straight onto the right screen instead of flashing the sign-in screen.
 function AppShell() {
-  const { authReady } = useScreening();
+  const screening = useScreening();
+  const { authReady } = screening;
+  const latest = useRef(screening);
+  latest.current = screening;
+
+  // Tapping a referral alert opens that referral.
+  useEffect(
+    () =>
+      listenForAlertTaps(({ referralId }: AlertData) => {
+        const { profile, referrals, history, viewHistoryItem, setActiveTab } = latest.current;
+        if (!profile || !navigationRef.isReady()) return;
+        if (profile.role === 'clinic') {
+          navigationRef.navigate('ClinicReferral', { referralId });
+          return;
+        }
+        const scanId = referrals.find(r => r.id === referralId)?.scan_id;
+        const scan = scanId ? history.find(h => h.id === scanId) : undefined;
+        if (scan) {
+          viewHistoryItem(scan);
+          navigationRef.navigate('Result');
+        } else {
+          setActiveTab('clinics');
+          navigationRef.navigate('Main');
+        }
+      }),
+    []
+  );
+
   const onLayout = useCallback(() => {
     SplashScreen.hideAsync().catch(() => {});
   }, []);
@@ -43,7 +72,7 @@ function AppShell() {
   return (
     <View style={styles.root} onLayout={onLayout}>
       <StatusBar style="dark" />
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef}>
         <RootNavigator />
       </NavigationContainer>
     </View>

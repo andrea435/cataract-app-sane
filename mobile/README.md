@@ -146,6 +146,15 @@ the group, so nobody can navigate into the other role's screens.
   `sendReferral()` also goes through the outbox and reports `queued` when it is waiting.
   A database trigger mirrors the latest referral's status onto `patients.referral_status`.
 
+Referral alerts: `src/lib/alerts.ts` wraps `expo-notifications` (Android channel
+`referrals`, permission asked once after sign-in when `notifications_enabled`). Every
+referrals load (realtime change, refresh, launch) is compared with what was there before
+(`announceChanges` in the context): clinic staff get "New referral", health workers get
+"attended / treated / note" for referrals they sent (`worker_id`). Changes made on the
+same phone don't alert, and the very first load after sign-in sets the baseline. Tapping
+an alert opens the referral (`navigationRef`). These are local notifications, so they
+need the app to be running or recently used.
+
 Reports: `src/data/reports.ts` (`buildReport()`, `reportText()` for Share) computes
 everything on the phone from the loaded `history` and `referrals`, so it needs no extra
 queries and works offline. Health workers see every screening, so the report covers the

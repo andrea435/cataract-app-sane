@@ -52,9 +52,10 @@ finished run. Details in [Building the Android APK](mobile/docs/android-build.md
 - **The detection is simulated.** Camera capture, photo upload and saving are real, but the
   probability score is a random number generated on the phone. A trained model still needs
   to be plugged in.
-- **No real sign-in.** There is one implied health worker, clinics open their view with a
-  6-digit code that is checked on the phone, and the database allows open read and write
-  with the public key. Add authentication and per-user access rules before using the app
-  with real patient data.
+- **Accounts are basic.** Health workers and clinic staff sign in with email and password,
+  and the database only shows each clinic its own patients. There is no password reset
+  (remove and recreate the login), and every health worker sees every patient. Check local
+  health data rules (consent, retention, where data is stored) before using real patient
+  data.
 - **Clinic distances are typed in** by the health worker, not based on the phone's location.
 - Profile items such as Language, Sync data, Help & support and Log out are visual only.

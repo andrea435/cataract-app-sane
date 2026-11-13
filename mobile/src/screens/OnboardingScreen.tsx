@@ -16,7 +16,7 @@ export default function OnboardingScreen({ navigation }: Props) {
   const slide = ONBOARD_SLIDES[step];
   const isLast = step >= ONBOARD_SLIDES.length - 1;
 
-  const finish = () => navigation.replace('Main');
+  const finish = () => navigation.navigate('SignIn');
   const next = () => (isLast ? finish() : setStep(s => s + 1));
 
   return (
@@ -50,9 +50,9 @@ export default function OnboardingScreen({ navigation }: Props) {
         </View>
       </View>
 
-      <Pressable onPress={() => navigation.navigate('ClinicSignIn')} hitSlop={8} style={styles.clinicLink}>
+      <Pressable onPress={finish} hitSlop={8} style={styles.clinicLink}>
         <Text style={styles.clinicLinkText}>
-          Clinic staff? <Text style={styles.clinicLinkStrong}>Open clinic view</Text>
+          Health worker or clinic staff? <Text style={styles.clinicLinkStrong}>Sign in</Text>
         </Text>
       </Pressable>
     </SafeAreaView>

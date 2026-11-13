@@ -1,5 +1,11 @@
 export type RootStackParamList = {
+  // Signed out
   Onboarding: undefined;
+  SignIn: undefined;
+  // First launch on a new backend: create the first (admin) health worker account.
+  Setup: undefined;
+
+  // Health worker
   Main: undefined;
   PatientInfo: undefined;
   Capture: undefined;
@@ -7,13 +13,20 @@ export type RootStackParamList = {
   Disclaimer: undefined;
   Result: undefined;
   Recommend: undefined;
-  // Health worker: add or edit a clinic (no id = add).
+  // Add or edit a clinic (no id = add).
   ClinicForm: { clinicId?: string } | undefined;
-  // Health worker: send a referral. With scanId, for a saved screening; without, for the
-  // screening in progress (it is saved first).
+  // Send a referral. With scanId, for a saved screening; without, for the screening in
+  // progress (it is saved first).
   Refer: { scanId?: string } | undefined;
-  // Clinic side.
-  ClinicSignIn: undefined;
+  // Health workers on the team (admins can add and remove them).
+  Team: undefined;
+  // Create a login: another health worker, or staff of one clinic.
+  AddAccount: { kind: 'worker' } | { kind: 'clinic'; clinicId: string };
+
+  // Both roles
+  ChangePassword: undefined;
+
+  // Clinic staff
   ClinicHome: undefined;
   ClinicReferral: { referralId: string };
 };

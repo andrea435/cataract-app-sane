@@ -12,7 +12,7 @@ import { formatShortDate } from '../../data/format';
 type View_ = 'clinics' | 'referrals';
 
 export default function ClinicsTab({ navigation }: { navigation: NativeStackNavigationProp<RootStackParamList, 'Main'> }) {
-  const { clinics, referrals, history, viewHistoryItem } = useScreening();
+  const { clinics, referrals, history, accounts, viewHistoryItem } = useScreening();
   const [view, setView] = useState<View_>('clinics');
 
   const openCount = (clinicId: string) => referrals.filter(r => r.clinic_id === clinicId && r.status !== 'treated').length;
@@ -52,6 +52,7 @@ export default function ClinicsTab({ navigation }: { navigation: NativeStackNavi
         <View style={{ gap: 12 }}>
           {clinics.map(clinic => {
             const open = openCount(clinic.id);
+            const loginCount = accounts.filter(a => a.clinic_id === clinic.id).length;
             return (
               <Pressable key={clinic.id} style={styles.card} onPress={() => navigation.navigate('ClinicForm', { clinicId: clinic.id })}>
                 <View style={styles.cardHeader}>
@@ -63,6 +64,10 @@ export default function ClinicsTab({ navigation }: { navigation: NativeStackNavi
                 <View style={styles.cardFooter}>
                   <Text style={[styles.openCount, open > 0 && { color: colors.brandDark }]}>
                     {open === 0 ? 'No open referrals' : `${open} open referral${open === 1 ? '' : 's'}`}
+                    <Text style={[styles.openCount, loginCount === 0 && { color: colors.warning }]}>
+                      {' · '}
+                      {loginCount === 0 ? 'No logins yet' : `${loginCount} login${loginCount === 1 ? '' : 's'}`}
+                    </Text>
                   </Text>
                   <Text style={styles.edit}>Edit ›</Text>
                 </View>
@@ -70,7 +75,7 @@ export default function ClinicsTab({ navigation }: { navigation: NativeStackNavi
             );
           })}
           {clinics.length === 0 && (
-            <EmptyState title="No clinics yet" body="Add the clinics and hospitals you refer patients to. Each one gets an access code for its own view.">
+            <EmptyState title="No clinics yet" body="Add the clinics and hospitals you refer patients to. Then add logins so each clinic can see the patients you refer.">
               <Pressable style={styles.addBtn} onPress={() => navigation.navigate('ClinicForm')}>
                 <PlusIcon size={14} />
                 <Text style={styles.addBtnText}>Add clinic</Text>

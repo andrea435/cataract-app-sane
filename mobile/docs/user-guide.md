@@ -25,9 +25,16 @@ because it is stored online, not on the phone.
 
 ## 2. First launch
 
-Three welcome screens explain what the app does. Tap **Next** to read them, or **Skip** to
-go straight to the app. Clinic staff tap **Clinic staff? Open clinic view** at the bottom
-instead (see [section 6](#6-for-clinic-staff-the-clinic-view)).
+Three welcome screens explain what the app does. Tap **Next** to read them, or **Skip**.
+Then **sign in** with the email and password a health worker on your team gave you. The
+app keeps you signed in until you log out.
+
+Health workers and clinic staff use the same app; what you see depends on your account.
+Clinic staff, see [section 6](#6-for-clinic-staff-the-clinic-view).
+
+**Setting up the app for the first time.** When no accounts exist yet, the sign-in screen
+shows **Create first account**. The person setting up the programme uses it once to create
+their own admin health worker account, then adds everyone else from inside the app.
 
 ## 3. The main screen
 
@@ -118,12 +125,20 @@ The screening and photo are saved and appear in History.
 ### Adding clinics
 
 Open the **Clinics** tab and tap **Add**. Enter the clinic's name, and if you like its
-address, phone number and distance. The app gives the clinic a **6-digit access code**.
-Share this code with the clinic: their staff need it to open their clinic view. Tap
-**New code** to make a different one.
+address, phone number and distance, then tap **Add clinic**.
 
-Tap a clinic to edit it, see its code, or remove it. A clinic that already has referrals
-can't be removed.
+### Giving clinic staff a login
+
+On the clinic's page (tap the clinic in the Clinics tab), under **Clinic logins**, tap
+**Add**. Enter the staff member's name and email, keep or change the suggested temporary
+password, and tap **Create login**. The next screen shows the email and password: give them
+to the staff member in person or by message. No email is sent, and the password isn't shown
+again. If it's lost, tap **Remove** next to the login and create a new one.
+
+A clinic card shows "No logins yet" until its staff have a login.
+
+Tap a clinic to edit it, manage its logins, or remove it. A clinic that already has
+referrals can't be removed.
 
 ### Referring a patient
 
@@ -149,11 +164,11 @@ every screening of that patient shows the same status.
 ## 6. For clinic staff: the clinic view
 
 1. Install the app (see [section 1](#1-installing-the-app)).
-2. On the welcome screen, tap **Clinic staff? Open clinic view**. (A health worker can also
-   find **Open clinic view** on the Profile tab.)
-3. Choose your clinic, enter the 6-digit access code the health worker gave you, and tap
-   **Open clinic view**. The phone stays signed in to your clinic until you tap
-   **Sign out**.
+2. Sign in with the email and password the health worker gave you. The app opens straight
+   onto your clinic's view, and stays signed in until you tap **Sign out**.
+
+You only ever see patients referred to your own clinic. The first time you sign in, tap
+**Change password** at the bottom of the screen and choose your own password.
 
 The clinic view shows how many patients are **Waiting**, **Attended** and **Treated**, and
 lists them. New referrals appear automatically; pull down to refresh. Tap a patient to see
@@ -174,9 +189,13 @@ the app.
 ## 8. Profile and settings
 
 The Profile tab shows your name, region and screening totals. **Notifications** can be
-turned on or off, and **About the AI model** shows the model version. Language, Sync data,
-Help & support and Log out are not active yet. **Open clinic view** switches this phone to
-the clinic view.
+turned on or off, and **About the AI model** shows the model version. **Change password**
+lets you replace the temporary password you were given with your own; do this the first
+time you sign in. **Log out** signs you out of this phone. Language, Sync data and Help & support are not active yet.
+
+**Health workers** lists everyone on your team. Admins (shown with an **Admin** tag) can
+tap **Add** to create a login for a new health worker, in the same way as a clinic login,
+and **Remove** someone who has left. Their past screenings are kept.
 
 ## 9. Troubleshooting
 
@@ -184,6 +203,7 @@ the clinic view.
 | --- | --- |
 | "Camera access was denied" | Open phone **Settings → Apps → Cataract Screening → Permissions** and allow Camera, then reopen the app. |
 | History or clinics are empty, or a red "Couldn't reach the server" banner shows | Check the phone's internet connection, then pull down on the screen or tap **Retry**. |
-| "That code doesn't match this clinic" | Check you picked the right clinic. Ask the health worker for the code; they can see it by tapping the clinic on their Clinics tab. |
+| "Wrong email or password" | Check the email and password exactly as given (passwords are case sensitive). If it's lost, ask a health worker to remove your login and create a new one. |
+| "This account no longer has access" | Your login was removed, or your clinic was removed. Ask a health worker for a new login. |
 | A screening didn't appear in History | It is only saved after **Finish & save to history**. Check the internet connection and screen again. |
 | Android won't install the APK | Allow installs from unknown sources for the app you opened the file with. If an older copy was signed differently, uninstall it first. |

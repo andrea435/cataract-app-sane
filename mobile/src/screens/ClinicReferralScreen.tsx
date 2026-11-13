@@ -11,14 +11,13 @@ import { RingGauge } from '../components/RingGauge';
 import { Banner, Field, StatusStepper } from '../components/ui';
 import { nextReferralStatus, statusFields } from '../data/types';
 import { formatScannedAt, formatShortDate } from '../data/format';
-import { EYE_CAPTURES_BUCKET, supabase } from '../lib/supabase';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ClinicReferral'>;
 
 const NEXT_LABEL = { attended: 'Mark as attended', treated: 'Mark as treated' } as const;
 
 export default function ClinicReferralScreen({ navigation, route }: Props) {
-  const { referrals, updateReferral } = useScreening();
+  const { referrals, updateReferral, photoUrlFor } = useScreening();
   const referral = referrals.find(r => r.id === route.params.referralId);
 
   const [note, setNote] = useState(referral?.clinic_note ?? '');
@@ -44,7 +43,7 @@ export default function ClinicReferralScreen({ navigation, route }: Props) {
 
   const scan = referral.scan;
   const result = scan ? statusFields(scan.probability, colors) : null;
-  const photoUri = scan?.photo_path ? supabase.storage.from(EYE_CAPTURES_BUCKET).getPublicUrl(scan.photo_path).data.publicUrl : null;
+  const photoUri = photoUrlFor(scan?.photo_path);
   const next = nextReferralStatus(referral.status);
   const noteChanged = (note.trim() || null) !== (referral.clinic_note ?? null);
 

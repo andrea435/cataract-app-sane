@@ -42,12 +42,24 @@ export interface ClinicRow {
   distance: string | null;
   address: string | null;
   phone: string | null;
-  access_code: string;
   booked_at: string | null;
   created_at: string;
 }
 
-export type ClinicInput = Pick<ClinicRow, 'name' | 'address' | 'phone' | 'distance' | 'access_code'>;
+export type ClinicInput = Pick<ClinicRow, 'name' | 'address' | 'phone' | 'distance'>;
+
+/** A signed-in person: a health worker, or staff of one clinic. */
+export interface ProfileRow {
+  id: string;
+  role: 'worker' | 'clinic';
+  clinic_id: string | null;
+  full_name: string;
+  email: string;
+  region: string | null;
+  is_admin: boolean;
+  notifications_enabled: boolean;
+  created_at: string;
+}
 
 export interface ReferralRow {
   id: string;
@@ -74,8 +86,21 @@ export function nextReferralStatus(status: ReferralStatus): ReferralStatus | nul
   return REFERRAL_STATUSES[referralStep(status) + 1]?.value ?? null;
 }
 
-export function randomAccessCode(): string {
-  return String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+/** A readable temporary password for a new account, e.g. "lake-7342-river". */
+export function suggestPassword(): string {
+  const words = ['lake', 'river', 'hill', 'sun', 'cloud', 'tree', 'stone', 'field', 'bird', 'rain', 'star', 'road'];
+  const pick = () => words[Math.floor(Math.random() * words.length)];
+  return `${pick()}-${String(Math.floor(1000 + Math.random() * 9000))}-${pick()}`;
+}
+
+export function initialsOf(name: string): string {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .map(p => p[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 }
 
 export interface WorkerSettingsRow {

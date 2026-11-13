@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -15,31 +15,20 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ClinicHome'>;
 type Filter = ReferralStatus | 'all';
 
 export default function ClinicHomeScreen({ navigation }: Props) {
-  const { session, clinics, referrals, loading, loadError, refreshAll, signOut } = useScreening();
+  const { profile, clinics, referrals, loading, loadError, refreshAll, signOut } = useScreening();
   const [filter, setFilter] = useState<Filter>('referred');
   const [refreshing, setRefreshing] = useState(false);
 
-  const clinicId = session.role === 'clinic' ? session.clinicId : null;
+  const clinicId = profile?.clinic_id ?? null;
   const clinic = clinics.find(c => c.id === clinicId);
   const mine = referrals.filter(r => r.clinic_id === clinicId);
   const count = (s: ReferralStatus) => mine.filter(r => r.status === s).length;
   const shown = filter === 'all' ? mine : mine.filter(r => r.status === filter);
 
-  const leave = () => {
-    signOut();
-    navigation.reset({ index: 0, routes: [{ name: 'Onboarding' }] });
-  };
-
-  // The clinic was removed (or this phone's session is stale): go back to the start.
-  useEffect(() => {
-    if (!loading && !loadError && (!clinicId || !clinic)) leave();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, loadError, clinicId, clinic]);
-
   const confirmSignOut = () =>
-    Alert.alert('Sign out of clinic view?', 'You will need the access code to sign in again.', [
+    Alert.alert('Sign out?', 'You will need your email and password to sign in again.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign out', style: 'destructive', onPress: leave },
+      { text: 'Sign out', style: 'destructive', onPress: signOut },
     ]);
 
   const onRefresh = async () => {
@@ -65,6 +54,7 @@ export default function ClinicHomeScreen({ navigation }: Props) {
           <View style={{ flex: 1 }}>
             <Text style={styles.eyebrow}>Clinic view</Text>
             <Text style={styles.clinicName}>{clinic?.name ?? ' '}</Text>
+            {!!profile && <Text style={styles.signedInAs}>Signed in as {profile.full_name}</Text>}
           </View>
           <Pressable onPress={confirmSignOut} hitSlop={8} style={styles.signOut}>
             <Text style={styles.signOutText}>Sign out</Text>
@@ -135,6 +125,10 @@ export default function ClinicHomeScreen({ navigation }: Props) {
           })}
           {shown.length === 0 && !loading && <EmptyState title="Nothing here" body={emptyText[filter]} />}
         </View>
+
+        <Pressable onPress={() => navigation.navigate('ChangePassword')} hitSlop={8} style={styles.changePw}>
+          <Text style={styles.changePwText}>Change password</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -146,6 +140,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 20 },
   eyebrow: { fontSize: 12, fontWeight: '600', color: colors.brand, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 2 },
   clinicName: { fontSize: 21, fontWeight: '700', color: colors.ink },
+  signedInAs: { fontSize: 12, color: colors.textSubtle, marginTop: 2 },
   signOut: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1, borderColor: colors.border, marginTop: 4 },
   signOutText: { fontSize: 12, fontWeight: '600', color: colors.textMuted2 },
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
@@ -160,4 +155,6 @@ const styles = StyleSheet.create({
   resultPillText: { fontSize: 11.5, fontWeight: '700' },
   note: { fontSize: 12.5, color: colors.textBody, lineHeight: 18 },
   footer: { fontSize: 11.5, color: colors.textSubtle },
+  changePw: { alignSelf: 'center', paddingVertical: 20 },
+  changePwText: { fontSize: 13, fontWeight: '600', color: colors.brand },
 });

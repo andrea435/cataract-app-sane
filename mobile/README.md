@@ -43,14 +43,16 @@ Standalone builds, signing and releases: [docs/android-build.md](docs/android-bu
 
 `.env` (committed) holds `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
 They are inlined into the JS bundle at build time, so changing them needs a rebuild. The
-anon key is designed to be public; access is meant to be governed by Row Level Security.
+anon key is designed to be public; access is governed by Supabase Auth and Row Level
+Security (see [docs/data-model.md](docs/data-model.md#access-control)). Account creation
+runs in the `manage-accounts` Edge Function (`../supabase/functions/`).
 To point the app at another Supabase project, change these two values.
 
 ## Screen flow
 
 ```
-Health worker
-Onboarding ─► Main (tabs: Scan · History · Clinics · Profile)
+Health worker (after sign-in)
+Main (tabs: Scan · History · Clinics · Profile)
                 │
                 └─ Start new screening
                      PatientInfo ─► Capture ─► Scanning ─► Disclaimer ─► Result ─► Recommend
@@ -58,14 +60,21 @@ Onboarding ─► Main (tabs: Scan · History · Clinics · Profile)
                                        Save without referring / Finish & save ◄──────┤
                                                        Refer to a clinic ─► Refer ◄──┘
 History item ─► Result (view only, referral tracker or "Refer to a clinic" ─► Refer)
-Clinics tab ─► ClinicForm (add / edit / remove, shows access code)
+Clinics tab ─► ClinicForm (add / edit / remove, clinic logins) ─► AddAccount
+Profile ─► Team (health workers) ─► AddAccount
+
+Signed out
+Onboarding ─► SignIn (─► Setup, only while no accounts exist)
 
 Clinic staff
-Onboarding or Profile ─► ClinicSignIn ─► ClinicHome ─► ClinicReferral
-(a phone signed in as a clinic starts on ClinicHome)
+ClinicHome ─► ClinicReferral
 ```
 
-- **Onboarding**: three intro slides; Skip or Get started replaces it with Main.
+`RootNavigator` renders one of three screen groups depending on who is signed in
+(`profile` in context): signed out, health worker or clinic staff. Signing in or out swaps
+the group, so nobody can navigate into the other role's screens.
+
+- **Onboarding**: three intro slides, shown when signed out; Skip or Get started goes to SignIn.
 - **Main**: hosts the four tabs and a custom `BottomTabBar`; the active tab lives in
   context (`activeTab`) so other screens can send the user to a specific tab. Pull down to
   reload; a banner with Retry appears when loading fails.
@@ -79,8 +88,12 @@ Onboarding or Profile ─► ClinicSignIn ─► ClinicHome ─► ClinicReferra
 - **Recommend**: next steps (different lists for detected / clear). When detected:
   **Refer to a clinic** and **Save without referring**; otherwise **Finish & save**.
 - **Refer**: pick a clinic, optional note, send. Saves an in-progress screening first.
-- **ClinicForm**: add or edit a clinic, regenerate its access code, remove it.
-- **ClinicSignIn**: choose a clinic and enter its 6-digit access code.
+- **ClinicForm**: add or edit a clinic, list, add and remove its staff logins, remove it.
+- **SignIn** / **Setup**: email and password sign-in; Setup creates the first admin
+  account and is offered only while no accounts exist.
+- **Team**: health workers; admins add and remove them.
+- **AddAccount**: create a worker or clinic login with a suggested temporary password,
+  then show the details to pass on.
 - **ClinicHome**: the clinic's referrals with Waiting / Attended / Treated counts and
   filters; live updates and pull to refresh.
 - **ClinicReferral**: one referral with result, photo, worker note, status stepper,
@@ -93,9 +106,15 @@ Onboarding or Profile ─► ClinicSignIn ─► ClinicHome ─► ClinicReferra
 - Loaded data: `history` (scans with their patient), `clinics`, `referrals` (with patient,
   scan and clinic name), `settings`, plus `loadError` for the retry banner. A realtime
   subscription reloads `referrals` whenever the table changes.
-- `session`: `{ role: 'worker' }` or `{ role: 'clinic', clinicId }`, persisted by
-  `src/state/session.ts` in a small JSON file so clinic staff stay signed in.
-  `signInClinic()` / `signOut()` change it.
+- Sign-in: `authReady`, `profile`, `signIn()`, `signOut()`, `setupFirstAccount()`. The
+  Supabase session is persisted by `src/lib/authStorage.ts` (files in the app's document
+  folder; `localStorage` on web). `App.tsx` keeps the splash screen up until the saved
+  session has been checked.
+- Accounts: `accounts` (all profiles, for workers), `createWorker()`,
+  `createClinicLogin()`, `removeAccount()`, all via the `manage-accounts` Edge Function
+  (`manageAccounts()` in `src/lib/supabase.ts`).
+- Photos: the bucket is private; `photoUrlFor(path)` returns a signed link fetched in bulk
+  after each load.
 - The in-progress screening draft: patient name/ID, eye, disclaimer tick, photo URI.
 - `computeCurrentResult()` produces the result to display. **Today it is a random
   probability (8–97%).** This is the function to replace when a real model is added.
@@ -131,10 +150,8 @@ docs/                        User guide, data model, Android build guide
 ## Known limitations
 
 - **Detection is mocked**: capture and saving are real, the score is random.
-- **No authentication**: one implied worker (`worker_settings` row 1) and open RLS
-  policies. Add real auth and per-row access rules before handling real patient data.
-- **Clinic access codes are not real security**: the code is checked on the phone and
-  is readable with the anon key. Use Supabase Auth for clinic staff before real data.
+- **No self-service password reset**: a lost password means removing the login and
+  creating a new one. All health workers can see all patients (no per-programme split).
 - Clinic distances are typed in, not computed from location; the Language, Sync data, Help & support and Log out
   settings are not wired up.
 - No offline mode: screenings need a connection to save.

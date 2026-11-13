@@ -80,14 +80,14 @@ patients at scale:
 1. **A real, validated detection model.** The probability score is currently simulated.
    A model must be trained on front-of-eye images, tested against diagnoses by
    ophthalmologists, and its accuracy published.
-2. **Security and privacy.** Add sign-in for health workers and access rules so each worker
-   or programme only sees its own patients, and meet local health data laws (for example
-   consent, data residency and retention).
+2. **Security and privacy.** Health workers and clinics now sign in, and each clinic sees
+   only its own patients. Next: split data by programme or district, add password reset,
+   and meet local health data laws (for example consent, data residency and retention).
 3. **Offline use.** Let screenings be saved on the phone and synced later, for areas with
    no signal.
 4. **Translations** of the app text into local languages.
-5. **Proper clinic accounts.** Clinics now confirm attendance and treatment directly, but
-   sign in with a shared 6-digit code. Replace it with individual staff accounts.
+5. **Reminders for missed referrals.** Clinics now confirm attendance and treatment
+   directly; the next step is nudging workers about patients still waiting after 2 weeks.
 6. **Clinical and regulatory approval** where screening software counts as a medical device.
 7. **A field pilot** with a partner health programme, measuring how many flagged patients
    reach treatment compared with the existing process.

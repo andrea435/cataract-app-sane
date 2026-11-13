@@ -1,15 +1,37 @@
 # Data model
 
-The app's backend is a Supabase project (Postgres + Storage). The phone talks to it
-directly with the public anon key from `mobile/.env`; there is no server of our own.
+The app's backend is a Supabase project (Postgres, Auth, Storage and one Edge Function).
+The phone talks to it directly with the public anon key from `mobile/.env` plus the signed-in
+person's session; there is no server of our own. Every table and the photo bucket require a
+signed-in account (see [Access control](#access-control)).
 
 ```
+auth.users 1 ── 1 profiles (worker | clinic) * ──── 0..1 clinics
 patients 1 ──── * scans
    1                 1
    └──── * referrals * ──── 1 clinics
                                          worker_settings (single row)
-storage bucket: eye-captures   (<scan id>.jpg)
+storage bucket: eye-captures (private)   (<scan id>.jpg)
+edge function:  manage-accounts          (creates / removes logins)
 ```
+
+### `profiles`
+
+One row per account, created only by the `manage-accounts` Edge Function.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | uuid, PK, FK → `auth.users.id` | `on delete cascade` |
+| `role` | text | `worker` (health worker) or `clinic` (clinic staff) |
+| `clinic_id` | text, FK → `clinics.id`, nullable | Set for clinic staff only (checked); `on delete cascade` |
+| `full_name`, `email` | text | Shown in lists; `full_name` is stamped on screenings and referrals |
+| `region` | text, nullable | Health workers |
+| `is_admin` | boolean | Admin workers can add and remove other workers |
+| `notifications_enabled` | boolean | The Profile toggle |
+| `created_at` | timestamptz | |
+
+People can update only their own `full_name`, `region` and `notifications_enabled`
+(column grants); role, clinic and admin flag change only through the Edge Function.
 
 ## Tables
 
@@ -42,7 +64,8 @@ One row per screening of one eye.
 | `detected` | boolean | `probability >= 50` |
 | `severity` | text, nullable | `Mild` (50–64), `Moderate` (65–79), `Severe` (80+) |
 | `photo_path` | text, nullable | Object path in the `eye-captures` bucket |
-| `worker_name` | text | Health worker who did the screening |
+| `worker_name` | text | Health worker who did the screening (their profile name) |
+| `worker_id` | uuid, FK → `auth.users.id`, nullable | Defaults to the signed-in user |
 | `clinic_id` | text, FK → `clinics.id`, nullable | Present in the schema; not set by the app yet |
 | `created_at` | timestamptz | |
 
@@ -59,7 +82,6 @@ Referral clinics. Health workers add, edit and remove them on the Clinics tab.
 | `name` | text | |
 | `address`, `phone` | text, nullable | |
 | `distance` | text, nullable | Display string such as `2.4 km`, typed by the worker; not computed from location |
-| `access_code` | text | Six digits. Clinic staff enter it to open the clinic view. Random by default |
 | `booked_at` | timestamptz, nullable | Legacy, from the old "Refer patient" button; no longer written |
 | `created_at` | timestamptz | |
 
@@ -77,35 +99,41 @@ One row per patient sent to a clinic. The clinic view lists the rows for its cli
 | `clinic_id` | text, FK → `clinics.id` | `on delete restrict` |
 | `status` | text | `referred` (default), `attended` or `treated` |
 | `worker_name` | text | Health worker who sent it |
+| `worker_id` | uuid, FK → `auth.users.id`, nullable | Defaults to the signed-in user |
 | `worker_note` | text, nullable | Note for the clinic, written when referring |
 | `clinic_note` | text, nullable | Written by clinic staff; shown to the health worker |
 | `created_at`, `updated_at` | timestamptz | `updated_at` is set by a trigger on every update |
 
-Triggers: `referrals_touch` keeps `updated_at` fresh; `referrals_sync_patient` copies the
-status of the patient's newest referral to `patients.referral_status`. The table is in the
+Triggers: `referrals_touch` keeps `updated_at` fresh; `referrals_sync_patient` (security
+definer) copies the status of the patient's newest referral to `patients.referral_status`;
+`referrals_guard_clinic_update` stops clinic staff changing anything but `status` and
+`clinic_note`. The table is in the
 `supabase_realtime` publication so both sides of the app see changes live.
 
 ### `worker_settings`
 
-A single row (`id = 1`, enforced by a check) for the one implied health worker:
-`worker_name`, `worker_initials`, `worker_region`, `notifications_enabled`,
-`ai_model_version`.
+A single row (`id = 1`, enforced by a check). The app now reads only `ai_model_version`
+from it; the worker name, region and notification setting moved to `profiles`.
 
 ## Storage
 
-Public bucket **`eye-captures`**. After a scan row is inserted, the app uploads the JPEG to
-`<scan id>.jpg` and writes that path to `scans.photo_path`. Upload is best effort: if it
-fails the scan is still saved without a photo. The app shows photos through their public
-URL.
+Private bucket **`eye-captures`**. After a scan row is inserted, the app uploads the JPEG
+to `<scan id>.jpg` and writes that path to `scans.photo_path`. Upload is best effort: if it
+fails the scan is still saved without a photo. The app shows photos through signed links
+(`createSignedUrls`, valid one hour, re-signed on every refresh). Health workers can read and
+write every photo; clinic staff can read only photos of screenings referred to their clinic.
 
 ## How the app writes data
 
 All reads and writes live in `src/state/ScreeningContext.tsx`.
 
-- **On launch:** loads all scans (with the linked patient embedded via
+- **On launch:** restores the saved session (stored in the app's private document folder,
+  `src/lib/authStorage.ts`) and loads the signed-in person's `profiles` row. A health worker
+  then gets all scans (with the linked patient embedded via
   `select('*, patient:patients(*)')`), all clinics, all referrals (with patient, scan and
-  clinic name embedded), and `worker_settings` row 1. It also subscribes to realtime
-  changes on `referrals` and reloads them when anything changes.
+  clinic name embedded), all profiles and `worker_settings` row 1; clinic staff get their
+  clinic and its referrals. Both subscribe to realtime changes on `referrals`, which
+  Supabase filters through the same access rules.
 - **Finish & save:** upserts the patient on `external_id` (so a repeated Patient ID
   reuses the same patient; a blank ID always creates a new one), inserts the scan, then
   uploads the photo.
@@ -114,27 +142,53 @@ All reads and writes live in `src/state/ScreeningContext.tsx`.
   inserts a `referrals` row.
 - **Referral status and clinic notes:** update `referrals.status` / `clinic_note` (from the
   clinic view, or the stepper on a result). The trigger updates `patients.referral_status`.
-- **Clinic sign in:** checks the entered code against `clinics.access_code` on the phone,
-  then remembers the clinic in `session.json` in the app's document folder.
-- **Notifications toggle:** updates `worker_settings.notifications_enabled`.
+- **Accounts:** `supabase.functions.invoke('manage-accounts', …)` with `bootstrap`,
+  `create_worker`, `create_clinic_user` or `delete_user`.
+- **Notifications toggle:** updates the person's own `profiles.notifications_enabled`.
 
 ## Access control
 
-Row Level Security is enabled on every table, but each table has a single
-`anon full access` policy (`using (true) with check (true)`). Anyone with the anon key can
-read and change everything. This is acceptable for a prototype only: add Supabase Auth and
-per-worker policies before storing real patient data.
+Everyone signs in with Supabase Auth (email and password). Requests with only the anon key
+see nothing. Row Level Security policies (in
+`20261113100000_accounts_and_access_rules.sql`) use three helpers that read the caller's
+profile: `is_worker()`, `my_role()` and `my_clinic_id()`.
 
-The clinic access code is the same: it keeps casual users out of the wrong clinic's view,
-but it is checked on the phone and the codes are readable with the anon key, so it is not a
-security boundary. The step up is Supabase Auth accounts for clinic staff, with policies
-that let a clinic read only `referrals` where `clinic_id` matches its own.
+| | Health worker | Clinic staff |
+| --- | --- | --- |
+| `scans` | all | read, only screenings referred to their clinic |
+| `patients` | all | read, only patients referred to their clinic |
+| `clinics` | all | read, own clinic |
+| `referrals` | all | read and update (status, clinic note) own clinic's |
+| `profiles` | read all; update own name, region, notifications | read and update own |
+| `worker_settings` | read, update | read |
+| `eye-captures` photos | all | read, only referred screenings |
+
+### Accounts and the `manage-accounts` Edge Function
+
+Accounts are never created by public sign-up (an account without a `profiles` row can see
+nothing anyway). The Edge Function `supabase/functions/manage-accounts` uses the service
+role to create users that are already confirmed, so no email setup is needed, and writes
+their profile:
+
+| Action | Who may call it | Does |
+| --- | --- | --- |
+| `status` | anyone | `{ needsSetup }`: true while no profiles exist |
+| `bootstrap` | anyone, only while no profiles exist | first account, an admin health worker |
+| `create_worker` | admin health workers | another health worker (optionally admin) |
+| `create_clinic_user` | health workers | a login tied to one clinic |
+| `delete_user` | health workers (admins for workers) | removes the login; their past work stays |
+
+Passwords are set by the health worker who creates the login and passed on in person;
+people then change their own with **Change password** (`supabase.auth.updateUser`). There is
+no forgotten-password reset yet: remove the login and create a new one.
+Deploy changes with `supabase functions deploy manage-accounts`.
 
 ## Migrations
 
 `supabase/migrations/` holds the `patients` migration
-(`20261026062000_create_patients.sql`) and the clinics and referrals migration
-(`20261113080000_clinics_and_referrals.sql`). The earlier tables (`scans`, `clinics`,
+(`20261026062000_create_patients.sql`), the clinics and referrals migration
+(`20261113080000_clinics_and_referrals.sql`) and the accounts and access rules migration
+(`20261113100000_accounts_and_access_rules.sql`). The earlier tables (`scans`, `clinics`,
 `worker_settings`) and the storage bucket were created directly in the Supabase project and
 are not yet captured as migration files, so this document is the reference for their
 structure.

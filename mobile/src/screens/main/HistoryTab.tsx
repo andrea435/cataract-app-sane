@@ -6,7 +6,7 @@ import { colors } from '../../theme/colors';
 import { useScreening } from '../../state/ScreeningContext';
 import { formatScannedAt } from '../../data/format';
 import { RootStackParamList } from '../../navigation/types';
-import { StatusChip } from '../../components/ui';
+import { PendingChip, StatusChip } from '../../components/ui';
 
 export default function HistoryTab({ navigation }: { navigation: NativeStackNavigationProp<RootStackParamList, 'Main'> }) {
   const { history, viewHistoryItem } = useScreening();
@@ -27,10 +27,16 @@ export default function HistoryTab({ navigation }: { navigation: NativeStackNavi
               <Text style={styles.rowMeta}>
                 {formatScannedAt(item.scanned_at)} · {item.eye_label}
               </Text>
-              {item.patient?.referral_status && (
+              {item.pending ? (
                 <View style={{ marginTop: 6 }}>
-                  <StatusChip status={item.patient.referral_status} />
+                  <PendingChip />
                 </View>
+              ) : (
+                item.patient?.referral_status && (
+                  <View style={{ marginTop: 6 }}>
+                    <StatusChip status={item.patient.referral_status} />
+                  </View>
+                )
               )}
             </View>
             <View style={{ alignItems: 'flex-end' }}>

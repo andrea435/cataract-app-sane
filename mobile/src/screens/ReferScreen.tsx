@@ -8,7 +8,7 @@ import { colors } from '../theme/colors';
 import { useScreening } from '../state/ScreeningContext';
 import { BackLink, OutlineButton, PrimaryButton } from '../components/Buttons';
 import { Banner, EmptyState, Field } from '../components/ui';
-import { CheckIcon, PlusIcon, SendIcon } from '../components/icons';
+import { CheckIcon, CloudIcon, PlusIcon, SendIcon } from '../components/icons';
 import { statusFields } from '../data/types';
 import { formatScannedAt } from '../data/format';
 
@@ -23,7 +23,7 @@ export default function ReferScreen({ navigation, route }: Props) {
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sent, setSent] = useState<{ clinic: string; patient: string } | null>(null);
+  const [sent, setSent] = useState<{ clinic: string; patient: string; queued: boolean } | null>(null);
   // Once the in-progress screening is saved, keep it so a retry doesn't save it twice.
   const savedDraft = useRef<Awaited<ReturnType<typeof finishAndSave>>>(null);
 
@@ -54,16 +54,16 @@ export default function ReferScreen({ navigation, route }: Props) {
       // A screening in progress is saved first so the clinic gets its photo and score.
       if (!savedScan && !savedDraft.current) savedDraft.current = await finishAndSave();
       const scan = savedScan ?? savedDraft.current;
-      if (!scan?.patient_record_id) {
-        setError("The screening couldn't be saved. Check your connection and try again.");
+      if (!scan) {
+        setError("The screening couldn't be saved. Try again.");
         return;
       }
-      const res = await sendReferral({ patientId: scan.patient_record_id, scanId: scan.id, clinicId, note });
+      const res = await sendReferral({ scan, clinicId, note });
       if (!res.ok) {
         setError(res.error);
         return;
       }
-      setSent({ clinic: clinics.find(c => c.id === clinicId)?.name ?? 'the clinic', patient: scan.patient_name });
+      setSent({ clinic: clinics.find(c => c.id === clinicId)?.name ?? 'the clinic', patient: scan.patient_name, queued: res.value.queued });
     } finally {
       setBusy(false);
     }
@@ -82,13 +82,14 @@ export default function ReferScreen({ navigation, route }: Props) {
     return (
       <SafeAreaView style={[styles.screen, styles.successScreen]} edges={['top', 'bottom']}>
         <View style={styles.successBody}>
-          <View style={styles.successIcon}>
-            <CheckIcon size={36} color={colors.successDark} />
+          <View style={[styles.successIcon, sent.queued && { backgroundColor: colors.warningBg }]}>
+            {sent.queued ? <CloudIcon size={38} color={colors.warning} /> : <CheckIcon size={36} color={colors.successDark} />}
           </View>
-          <Text style={styles.successTitle}>Referral sent</Text>
+          <Text style={styles.successTitle}>{sent.queued ? 'Referral saved' : 'Referral sent'}</Text>
           <Text style={styles.successText}>
-            {sent.patient} has been referred to {sent.clinic}. The clinic sees it in their clinic view, and you'll see
-            it move to attended and treated as they update it.
+            {sent.queued
+              ? `No signal right now, so the referral of ${sent.patient} to ${sent.clinic} is saved on this phone. It is sent automatically as soon as you have signal.`
+              : `${sent.patient} has been referred to ${sent.clinic}. The clinic sees it in their clinic view, and you'll see it move to attended and treated as they update it.`}
           </Text>
         </View>
         <PrimaryButton label="Done" onPress={done} />

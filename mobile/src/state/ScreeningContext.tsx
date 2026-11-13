@@ -1,17 +1,14 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { File } from 'expo-file-system';
-import type { Session } from '@supabase/supabase-js';
-import { supabase, EYE_CAPTURES_BUCKET, PHOTO_URL_TTL_SECONDS, manageAccounts } from '../lib/supabase';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState } from 'react-native';
+import { isAuthRetryableFetchError, type Session } from '@supabase/supabase-js';
+import { supabase, EYE_CAPTURES_BUCKET, PHOTO_URL_TTL_SECONDS, manageAccounts, storedSessionUserId, forgetStoredSession } from '../lib/supabase';
+import { keepPhoto, newId, readJson, writeJson } from '../lib/localStore';
+import { Job, REFERRAL_SELECT, ReferralJob, SCAN_SELECT, ScanJob, isConnectionError, pendingReferralRow, pendingScanRow, uploadReferral, uploadScan } from './outbox';
 import { colors } from '../theme/colors';
 import { ClinicInput, ClinicRow, DisplayResult, Eye, ProfileRow, ReferralRow, ReferralStatus, ScanRow, WorkerSettingsRow, statusFields } from '../data/types';
 import { formatDate, formatScannedAt } from '../data/format';
 
 export type TabKey = 'scan' | 'history' | 'clinics' | 'profile';
-
-// Scans come back with their linked patient embedded.
-const SCAN_SELECT = '*, patient:patients(*)';
-// Referrals come back with the patient, the screening behind them and the clinic's name.
-const REFERRAL_SELECT = '*, patient:patients(*), scan:scans(*), clinic:clinics(id, name)';
 
 // Postgres foreign-key violation: the clinic still has referrals pointing at it.
 const FK_VIOLATION = '23503';
@@ -21,6 +18,35 @@ export type Result<T = void> = { ok: true; value: T } | { ok: false; error: stri
 const NETWORK_ERROR = "Couldn't reach the server. Check your connection and try again.";
 
 export type NewAccount = { full_name: string; email: string; password: string };
+
+/** Offline mode: what is still waiting on this phone to upload. */
+export interface SyncStatus {
+  /** Screenings and referrals not uploaded yet. */
+  waiting: number;
+  /** Of those, how many the server refused (shown so they can be checked). */
+  refused: number;
+  syncing: boolean;
+  lastSyncedAt: string | null;
+}
+
+// How long a save waits for the upload before carrying on with the copy on the phone.
+const SAVE_WAIT_MS = 8000;
+// While offline (or with uploads waiting), try again this often.
+const RETRY_EVERY_MS = 30000;
+
+// What is kept on the phone so the app opens and works without signal.
+interface CachedData {
+  profile: ProfileRow;
+  history: ScanRow[];
+  clinics: ClinicRow[];
+  referrals: ReferralRow[];
+  settings: WorkerSettingsRow | null;
+  accounts: ProfileRow[];
+  savedAt: string;
+}
+
+const cacheKey = (userId: string) => `cache-${userId}`;
+const outboxKey = (userId: string) => `outbox-${userId}`;
 
 interface ScreeningContextValue {
   // ---- sign-in ----
@@ -54,6 +80,10 @@ interface ScreeningContextValue {
   toggleNotifications: () => Promise<void>;
   /** Short-lived signed link for a private eye photo, once it has been fetched. */
   photoUrlFor: (path: string | null | undefined) => string | null;
+  /** Offline mode: uploads waiting on this phone. */
+  sync: SyncStatus;
+  /** Try uploading what is waiting now. */
+  syncNow: () => Promise<void>;
 
   // clinics (managed by health workers)
   addClinic: (input: ClinicInput) => Promise<Result<ClinicRow>>;
@@ -62,7 +92,8 @@ interface ScreeningContextValue {
 
   // referrals
   latestReferralFor: (patientId: string | null | undefined) => ReferralRow | undefined;
-  sendReferral: (args: { patientId: string; scanId: string | null; clinicId: string; note: string }) => Promise<Result<ReferralRow>>;
+  /** Sends a referral, or keeps it on the phone to send when there is signal (`queued`). */
+  sendReferral: (args: { scan: ScanRow; clinicId: string; note: string }) => Promise<Result<{ row: ReferralRow; queued: boolean }>>;
   updateReferral: (id: string, patch: { status?: ReferralStatus; clinic_note?: string | null }) => Promise<Result>;
 
   activeTab: TabKey;
@@ -87,6 +118,8 @@ interface ScreeningContextValue {
   viewHistoryItem: (row: ScanRow) => void;
 
   saving: boolean;
+  /** Saves the screening on the phone and uploads it when possible. The row returned is
+   * `pending` while it is still waiting to upload. */
   finishAndSave: () => Promise<ScanRow | null>;
 }
 
@@ -120,16 +153,34 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
 
   const [saving, setSaving] = useState(false);
 
-  const userId = authSession?.user.id ?? null;
+  // Offline mode.
+  const [offlineUserId, setOfflineUserId] = useState<string | null>(null);
+  const [outbox, setOutbox] = useState<Job[]>([]);
+  const [syncing, setSyncing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const outboxRef = useRef<Job[]>([]);
+  const historyRef = useRef<ScanRow[]>([]);
+  const syncPromise = useRef<Promise<void> | null>(null);
+  historyRef.current = history;
+
+  // Signed in on this phone. Without signal, once the hour-long access token has expired
+  // Supabase reports no session until it can renew it, so fall back to the saved one.
+  const userId = authSession?.user.id ?? offlineUserId;
 
   // ---------------------------------------------------------------- sign-in
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data, error }) => {
       setAuthSession(data.session);
-      if (!data.session) setAuthReady(true);
+      if (data.session) return;
+      const stored = error && isAuthRetryableFetchError(error) ? storedSessionUserId() : null;
+      setOfflineUserId(stored);
+      if (!stored) setAuthReady(true);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => setAuthSession(session));
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      setAuthSession(session);
+      if (session || event === 'SIGNED_OUT') setOfflineUserId(null);
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -141,6 +192,9 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
     setReferrals([]);
     setSettings(null);
     setPhotoUrls({});
+    setOutbox([]);
+    outboxRef.current = [];
+    setLastSyncedAt(null);
     setLoadError(false);
     setLoading(true);
     setActiveTab('scan');
@@ -153,6 +207,23 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     let cancelled = false;
+
+    // Open straight away with what was saved on the phone last time, then check online.
+    const cached = readJson<CachedData>(cacheKey(userId));
+    if (cached?.profile?.id === userId) {
+      setProfile(cached.profile);
+      setHistory(cached.history ?? []);
+      setClinics(cached.clinics ?? []);
+      setReferrals(cached.referrals ?? []);
+      setSettings(cached.settings ?? null);
+      setAccounts(cached.accounts ?? []);
+      setLoading(false);
+      setAuthReady(true);
+    }
+    const waiting = readJson<Job[]>(outboxKey(userId)) ?? [];
+    outboxRef.current = waiting;
+    setOutbox(waiting);
+
     (async () => {
       const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
       if (cancelled) return;
@@ -185,7 +256,14 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      // No signal: forget the sign-in on this phone anyway. Anything still waiting to
+      // upload stays saved for this account and uploads when they sign in again.
+      forgetStoredSession();
+      setAuthSession(null);
+      setOfflineUserId(null);
+    }
   }, []);
 
   const changePassword = useCallback(async (password: string): Promise<Result> => {
@@ -241,6 +319,14 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
 
   const refreshAll = useCallback(async () => {
     if (!profile) return;
+    // Without a live session the server would answer as a stranger (with nothing), so don't
+    // replace what's on the phone. getSession renews an expired sign-in when it can.
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      setLoadError(true);
+      setLoading(false);
+      return;
+    }
     try {
       if (profile.role === 'clinic') {
         // Clinic staff only ever see their own clinic and its referrals (enforced by the database).
@@ -264,7 +350,9 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
       if (clinicsRes.data) setClinics(clinicsRes.data as ClinicRow[]);
       if (settingsRes.data) setSettings(settingsRes.data as WorkerSettingsRow);
       if (accountsRes.data) setAccounts(accountsRes.data as ProfileRow[]);
-      setLoadError(!!(historyRes.error || clinicsRes.error || !referralsOk));
+      const failed = !!(historyRes.error || clinicsRes.error || !referralsOk);
+      setLoadError(failed);
+      if (!failed && outboxRef.current.length > 0) syncNowRef.current();
     } catch {
       setLoadError(true);
     } finally {
@@ -300,6 +388,117 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
       prev.map(s => (s.patient_record_id === patientId && s.patient ? { ...s, patient: { ...s.patient, referral_status: status } } : s))
     );
   }, []);
+  const syncPatientStatusRef = useRef(syncPatientStatus);
+
+  // ---------------------------------------------------------------- offline mode
+
+  // Keep a copy of the latest server data on the phone (only what came from the server;
+  // things still waiting to upload live in the outbox).
+  useEffect(() => {
+    if (!profile || loading) return;
+    const t = setTimeout(() => {
+      writeJson(cacheKey(profile.id), { profile, history, clinics, referrals, settings, accounts, savedAt: new Date().toISOString() } satisfies CachedData);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [profile, loading, history, clinics, referrals, settings, accounts]);
+
+  const saveOutbox = useCallback(
+    (next: Job[]) => {
+      outboxRef.current = next;
+      setOutbox(next);
+      if (userId) writeJson(outboxKey(userId), next);
+    },
+    [userId]
+  );
+
+  const updateJob = useCallback(
+    (id: string, patch: Partial<ScanJob> | Partial<ReferralJob>) => {
+      saveOutbox(outboxRef.current.map(j => (j.id === id ? ({ ...j, ...patch } as Job) : j)));
+    },
+    [saveOutbox]
+  );
+
+  // Upload waiting jobs oldest first. Stops at the first connection failure so a referral
+  // never goes ahead of its screening; a job the server refuses is kept and marked.
+  const runSync = useCallback(async () => {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) return;
+    const tried = new Set<string>();
+    setSyncing(true);
+    try {
+      for (;;) {
+        const job = outboxRef.current.find(j => !tried.has(j.id));
+        if (!job) break;
+        tried.add(job.id);
+        if (job.kind === 'scan') {
+          const res = await uploadScan(job, () => updateJob(job.id, { scanStored: true }));
+          if (res.kind === 'offline') break;
+          if (res.kind === 'rejected') {
+            updateJob(job.id, { error: res.error });
+            continue;
+          }
+          saveOutbox(outboxRef.current.filter(j => j.id !== job.id));
+          setHistory(prev => [res.row, ...prev.filter(h => h.id !== res.row.id)]);
+          // Show the phone's copy of the photo until the next refresh signs the uploaded one.
+          if (res.row.photo_path && job.photoUri) setPhotoUrls(prev => ({ ...prev, [res.row.photo_path as string]: job.photoUri as string }));
+          else if (res.row.photo_path) signPhotos([res.row.photo_path]);
+        } else {
+          const res = await uploadReferral(job);
+          if (res.kind === 'offline') break;
+          if (res.kind === 'rejected') {
+            updateJob(job.id, { error: res.error });
+            continue;
+          }
+          saveOutbox(outboxRef.current.filter(j => j.id !== job.id));
+          setReferrals(prev => [res.row, ...prev.filter(r => r.id !== res.row.id)]);
+          syncPatientStatusRef.current(res.row.patient_id, res.row.status);
+        }
+      }
+      if (outboxRef.current.every(j => tried.has(j.id) && !j.error) || outboxRef.current.length === 0) {
+        setLastSyncedAt(new Date().toISOString());
+      }
+    } finally {
+      setSyncing(false);
+    }
+  }, [saveOutbox, updateJob, signPhotos]);
+
+  // One upload run at a time; callers share the run in progress.
+  const syncNow = useCallback(() => {
+    if (!syncPromise.current) {
+      syncPromise.current = runSync()
+        .catch(() => undefined)
+        .finally(() => {
+          syncPromise.current = null;
+        });
+    }
+    return syncPromise.current;
+  }, [runSync]);
+  const syncNowRef = useRef(syncNow);
+  syncNowRef.current = syncNow;
+
+  /** Waits for an upload run, but no longer than `SAVE_WAIT_MS` on a slow connection. */
+  const syncWithin = useCallback(
+    () => Promise.race([syncNow(), new Promise<void>(resolve => setTimeout(resolve, SAVE_WAIT_MS))]),
+    [syncNow]
+  );
+
+  // Without signal, keep trying: on a timer, and whenever the app comes back to the front.
+  const needsRetry = !!profile && (loadError || outbox.length > 0);
+  useEffect(() => {
+    if (!needsRetry) return;
+    const retry = () => (loadError ? refreshAll() : syncNow());
+    const timer = setInterval(retry, RETRY_EVERY_MS);
+    const sub = AppState.addEventListener('change', state => state === 'active' && retry());
+    return () => {
+      clearInterval(timer);
+      sub.remove();
+    };
+  }, [needsRetry, loadError, refreshAll, syncNow]);
+
+  const sync = useMemo<SyncStatus>(
+    () => ({ waiting: outbox.length, refused: outbox.filter(j => j.error).length, syncing, lastSyncedAt }),
+    [outbox, syncing, lastSyncedAt]
+  );
 
   const toggleNotifications = useCallback(async () => {
     if (!profile) return;
@@ -366,33 +565,51 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
     return { ok: true, value: undefined };
   }, []);
 
+  // Lists shown on screen: what's waiting on the phone first, then what's on the server.
+  const historyIds = useMemo(() => new Set(history.map(h => h.id)), [history]);
+  const pendingRows = useMemo(() => {
+    const scans = outbox.filter((j): j is ScanJob => j.kind === 'scan' && !historyIds.has(j.id)).map(pendingScanRow).reverse();
+    const allScans = [...scans, ...history];
+    const refs = outbox.filter((j): j is ReferralJob => j.kind === 'referral').map(j => pendingReferralRow(j, allScans, clinics)).reverse();
+    return { scans, refs };
+  }, [outbox, history, historyIds, clinics]);
+  const shownHistory = useMemo(() => [...pendingRows.scans, ...history], [pendingRows, history]);
+  const shownReferrals = useMemo(() => [...pendingRows.refs, ...referrals], [pendingRows, referrals]);
+
   // ---------------------------------------------------------------- referrals
 
   const latestReferralFor = useCallback(
-    (patientId: string | null | undefined) => (patientId ? referrals.find(r => r.patient_id === patientId) : undefined),
-    [referrals]
+    (patientId: string | null | undefined) => (patientId ? shownReferrals.find(r => r.patient_id === patientId) : undefined),
+    [shownReferrals]
   );
 
   const sendReferral = useCallback(
-    async ({ patientId, scanId, clinicId, note }: { patientId: string; scanId: string | null; clinicId: string; note: string }): Promise<Result<ReferralRow>> => {
-      const { data, error } = await supabase
-        .from('referrals')
-        .insert({
-          patient_id: patientId,
-          scan_id: scanId,
-          clinic_id: clinicId,
-          worker_name: profile?.full_name ?? 'Health worker',
-          worker_note: note.trim() || null,
-        })
-        .select(REFERRAL_SELECT)
-        .single();
-      if (error || !data) return { ok: false, error: NETWORK_ERROR };
-      const row = data as ReferralRow;
-      setReferrals(prev => [row, ...prev.filter(r => r.id !== row.id)]);
-      syncPatientStatus(patientId, row.status);
-      return { ok: true, value: row };
+    async ({ scan, clinicId, note }: { scan: ScanRow; clinicId: string; note: string }): Promise<Result<{ row: ReferralRow; queued: boolean }>> => {
+      const job: ReferralJob = {
+        kind: 'referral',
+        id: newId(),
+        scanId: scan.id,
+        patientId: scan.patient_record_id,
+        clinicId,
+        note: note.trim() || null,
+        workerName: profile?.full_name ?? 'Health worker',
+        createdAt: new Date().toISOString(),
+      };
+      saveOutbox([...outboxRef.current, job]);
+      await syncWithin();
+      const stillWaiting = outboxRef.current.find(j => j.id === job.id);
+      if (!stillWaiting) {
+        const row = referrals.find(r => r.id === job.id);
+        return { ok: true, value: { row: row ?? pendingReferralRow(job, historyRef.current, clinics), queued: false } };
+      }
+      if (stillWaiting.error && !scan.pending) {
+        // Online and refused: say so now rather than keeping a referral that will never go.
+        saveOutbox(outboxRef.current.filter(j => j.id !== job.id));
+        return { ok: false, error: NETWORK_ERROR };
+      }
+      return { ok: true, value: { row: pendingReferralRow(job, historyRef.current, clinics), queued: true } };
     },
-    [profile, syncPatientStatus]
+    [profile, saveOutbox, syncWithin, referrals, clinics]
   );
 
   const updateReferral = useCallback(
@@ -449,7 +666,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
         eyeLabel: row.eye_label,
         date: formatScannedAt(row.scanned_at),
         probability: row.probability,
-        photoUri: photoUrlFor(row.photo_path),
+        photoUri: row.local_photo_uri ?? photoUrlFor(row.photo_path),
         status: statusFields(row.probability, colors),
       });
       setViewOnly(true);
@@ -463,70 +680,43 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
     if (r.id) {
       // Already-saved historical record being re-viewed: nothing new to persist.
       resetDraft();
-      return history.find(h => h.id === r.id) ?? null;
+      const waiting = outboxRef.current.find((j): j is ScanJob => j.kind === 'scan' && j.id === r.id);
+      return historyRef.current.find(h => h.id === r.id) ?? (waiting ? pendingScanRow(waiting) : null);
     }
     setSaving(true);
-    let saved: ScanRow | null = null;
     try {
-      // Reuse the patient record when the worker entered a known patient ID; otherwise create one.
-      const externalId = patientId.trim() || null;
-      const { data: patient } = await supabase
-        .from('patients')
-        .upsert({ name: r.name, external_id: externalId }, { onConflict: 'external_id' })
-        .select('id')
-        .single();
-
-      const { data: inserted, error } = await supabase
-        .from('scans')
-        .insert({
-          patient_record_id: patient?.id ?? null,
-          patient_name: r.name,
-          patient_id: externalId,
-          eye_label: r.eyeLabel,
-          scanned_at: new Date().toISOString().slice(0, 10),
-          probability: r.probability,
-          detected: r.status.detected,
-          severity: r.status.severity,
-          worker_name: profile?.full_name ?? 'Health worker',
-        })
-        .select(SCAN_SELECT)
-        .single();
-
-      if (!error && inserted) {
-        let photoPath: string | null = null;
-        if (capturedPhotoUri) {
-          try {
-            const file = new File(capturedPhotoUri);
-            const bytes = await file.arrayBuffer();
-            const path = `${inserted.id}.jpg`;
-            const { error: uploadError } = await supabase.storage
-              .from(EYE_CAPTURES_BUCKET)
-              .upload(path, bytes, { contentType: 'image/jpeg', upsert: true });
-            if (!uploadError) {
-              photoPath = path;
-              await supabase.from('scans').update({ photo_path: path }).eq('id', inserted.id);
-              // Show the local copy straight away; it is re-signed on the next refresh.
-              setPhotoUrls(prev => ({ ...prev, [path]: capturedPhotoUri }));
-            }
-          } catch {
-            // Photo upload is best-effort; the scan record itself is already saved.
-          }
-        }
-        saved = { ...(inserted as ScanRow), photo_path: photoPath };
-        setHistory(prev => [saved as ScanRow, ...prev]);
-      }
+      // Saved on the phone first, so nothing is lost without signal, then uploaded.
+      const id = newId();
+      const job: ScanJob = {
+        kind: 'scan',
+        id,
+        patientId: newId(),
+        externalId: patientId.trim() || null,
+        name: r.name,
+        eyeLabel: r.eyeLabel,
+        scannedAt: new Date().toISOString().slice(0, 10),
+        probability: r.probability,
+        detected: r.status.detected,
+        severity: r.status.severity,
+        workerName: profile?.full_name ?? 'Health worker',
+        photoUri: capturedPhotoUri ? keepPhoto(capturedPhotoUri, id) : null,
+        createdAt: new Date().toISOString(),
+      };
+      saveOutbox([...outboxRef.current, job]);
+      resetDraft();
+      await syncWithin();
+      return historyRef.current.find(h => h.id === id) ?? pendingScanRow(job);
     } finally {
       setSaving(false);
-      resetDraft();
     }
-    return saved;
-  }, [currentResult, history, patientId, capturedPhotoUri, profile, resetDraft]);
+  }, [currentResult, patientId, capturedPhotoUri, profile, resetDraft, saveOutbox, syncWithin]);
 
   const value = useMemo<ScreeningContextValue>(
     () => ({
       authReady, profile, accountError, signIn, signOut, changePassword, checkNeedsSetup, setupFirstAccount,
       accounts, createWorker, createClinicLogin, removeAccount,
-      history, clinics, referrals, settings, loading, loadError, refreshAll, toggleNotifications, photoUrlFor,
+      history: shownHistory, clinics, referrals: shownReferrals, settings, loading, loadError, refreshAll, toggleNotifications, photoUrlFor,
+      sync, syncNow,
       addClinic, updateClinic, deleteClinic,
       latestReferralFor, sendReferral, updateReferral,
       activeTab, setActiveTab,
@@ -538,7 +728,8 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
     [
       authReady, profile, accountError, signIn, signOut, changePassword, checkNeedsSetup, setupFirstAccount,
       accounts, createWorker, createClinicLogin, removeAccount,
-      history, clinics, referrals, settings, loading, loadError, refreshAll, toggleNotifications, photoUrlFor,
+      shownHistory, clinics, shownReferrals, settings, loading, loadError, refreshAll, toggleNotifications, photoUrlFor,
+      sync, syncNow,
       addClinic, updateClinic, deleteClinic,
       latestReferralFor, sendReferral, updateReferral,
       activeTab,

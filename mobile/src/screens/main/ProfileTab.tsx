@@ -10,7 +10,7 @@ import { RootStackParamList } from '../../navigation/types';
 import { initialsOf } from '../../data/types';
 
 export default function ProfileTab({ navigation }: { navigation: NativeStackNavigationProp<RootStackParamList, 'Main'> }) {
-  const { history, settings, profile, accounts, toggleNotifications, signOut } = useScreening();
+  const { history, settings, profile, accounts, toggleNotifications, signOut, sync, syncNow } = useScreening();
   const stats = computeStats(history);
   const workerName = profile?.full_name ?? '';
   const initials = initialsOf(workerName);
@@ -19,16 +19,26 @@ export default function ProfileTab({ navigation }: { navigation: NativeStackNavi
   const workerCount = accounts.filter(a => a.role === 'worker').length;
 
   const confirmSignOut = () =>
-    Alert.alert('Log out?', 'You will need your email and password to sign in again.', [
+    Alert.alert(
+      'Log out?',
+      sync.waiting > 0
+        ? `${sync.waiting} item${sync.waiting === 1 ? " hasn't" : "s haven't"} uploaded yet. They stay saved on this phone and upload after you sign in again. You need signal to sign in.`
+        : 'You will need your email and password to sign in again.',
+      [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Log out', style: 'destructive', onPress: signOut },
-    ]);
+      ]
+    );
 
   const rows: { label: string; value?: string; isToggle?: boolean; onPress?: () => void; danger?: boolean }[] = [
     { label: 'Health workers', value: workerCount ? String(workerCount) : undefined, onPress: () => navigation.navigate('Team') },
     { label: 'Change password', onPress: () => navigation.navigate('ChangePassword') },
     { label: 'Language', value: 'English' },
-    { label: 'Sync data', value: 'Auto' },
+    {
+      label: 'Sync data',
+      value: sync.syncing ? 'Uploading…' : sync.waiting > 0 ? `${sync.waiting} waiting` : 'Up to date',
+      onPress: syncNow,
+    },
     { label: 'Notifications', isToggle: true },
     { label: 'About the AI model', value: settings?.ai_model_version ?? 'v2.3' },
     { label: 'Help & support' },

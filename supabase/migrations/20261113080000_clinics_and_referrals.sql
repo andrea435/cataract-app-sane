@@ -43,7 +43,7 @@ create policy "anon full access" on public.referrals
 
 -- 3. Keep updated_at fresh and mirror the latest referral's status onto the patient, so
 -- patients.referral_status (used by History) stays correct whoever changes it.
-create or replace function public.referrals_touch_and_sync()
+create or replace function public.referrals_set_updated_at()
 returns trigger
 language plpgsql
 set search_path = public
@@ -57,7 +57,7 @@ end $$;
 
 create trigger referrals_touch
   before update on public.referrals
-  for each row execute function public.referrals_touch_and_sync();
+  for each row execute function public.referrals_set_updated_at();
 
 create or replace function public.referrals_sync_patient()
 returns trigger

@@ -42,9 +42,10 @@ npm install
 npm start
 ```
 
-Scan the QR code with Expo Go on a phone. To get a standalone app that installs like any
-other, use **Actions → Android APK → Run workflow** on GitHub and download the APK from the
-finished run. Details in [Building the Android APK](mobile/docs/android-build.md).
+Scan the QR code with Expo Go on a phone. To install the standalone Android app instead,
+open this link on the phone: **[Download the latest APK](https://github.com/andrea435/cataract-app-sane/releases/download/apk-latest/cataract-screening.apk)**. It's rebuilt
+automatically every time an app change is merged into main. Details in
+[Building the Android APK](mobile/docs/android-build.md).
 
 ## Current limitations
 

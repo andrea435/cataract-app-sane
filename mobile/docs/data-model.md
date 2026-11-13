@@ -189,7 +189,9 @@ Deploy changes with `supabase functions deploy manage-accounts`.
 `supabase/migrations/` holds the `patients` migration
 (`20261026062000_create_patients.sql`), the clinics and referrals migration
 (`20261113080000_clinics_and_referrals.sql`) and the accounts and access rules migration
-(`20261113100000_accounts_and_access_rules.sql`). The earlier tables (`scans`, `clinics`,
+(`20261113100000_accounts_and_access_rules.sql`). The photo policies are in
+`20261113100500_eye_photo_policies.sql`, which must be run from the Supabase dashboard's
+SQL editor because only the storage owner can change policies on `storage.objects`. The earlier tables (`scans`, `clinics`,
 `worker_settings`) and the storage bucket were created directly in the Supabase project and
 are not yet captured as migration files, so this document is the reference for their
 structure.

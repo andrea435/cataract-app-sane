@@ -47,18 +47,32 @@ returns boolean language sql stable security definer set search_path = public as
   select coalesce((select role = 'worker' from public.profiles where id = auth.uid()), false)
 $$;
 
-revoke all on function public.my_role(), public.my_clinic_id(), public.is_worker() from public, anon;
-grant execute on function public.my_role(), public.my_clinic_id(), public.is_worker() to authenticated;
 
 create policy "read own profile" on public.profiles
   for select to authenticated using (id = auth.uid());
 create policy "workers read all profiles" on public.profiles
   for select to authenticated using (public.is_worker());
 
--- People may edit only their own name, region and notification setting; role, clinic and
--- admin flag change only through the Edge Function (service role).
-revoke insert, update, delete on public.profiles from anon, authenticated;
-grant update (full_name, region, notifications_enabled) on public.profiles to authenticated;
+-- People may edit only their own name, region and notification setting; role, clinic,
+-- email and admin flag change only through the Edge Function (service role). There are no
+-- insert or delete policies, so only the service role can add or remove profiles.
+create or replace function public.profiles_guard_update()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if coalesce(auth.role(), '') <> 'service_role' and (
+    new.id, new.role, new.clinic_id, new.email, new.is_admin, new.created_at
+  ) is distinct from (
+    old.id, old.role, old.clinic_id, old.email, old.is_admin, old.created_at
+  ) then
+    raise exception 'You can only change your name, region and notification setting';
+  end if;
+  return new;
+end $$;
+
+create trigger profiles_guard_update
+  before update on public.profiles
+  for each row execute function public.profiles_guard_update();
+
 create policy "update own profile" on public.profiles
   for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
 
@@ -138,26 +152,6 @@ alter table public.clinics alter column access_code drop not null, alter column 
 
 update storage.buckets set public = false where id = 'eye-captures';
 
--- The old open read/write policies now only apply to signed-in health workers.
-alter policy "anon read eye-captures" on storage.objects to authenticated
-  using (bucket_id = 'eye-captures' and public.is_worker());
-alter policy "anon write eye-captures" on storage.objects to authenticated
-  with check (bucket_id = 'eye-captures' and public.is_worker());
-alter policy "anon read eye-captures" on storage.objects rename to "workers read eye photos";
-alter policy "anon write eye-captures" on storage.objects rename to "workers upload eye photos";
--- Re-uploading a photo (upsert) also needs update.
-create policy "workers replace eye photos" on storage.objects
-  for update to authenticated
-  using (bucket_id = 'eye-captures' and public.is_worker())
-  with check (bucket_id = 'eye-captures' and public.is_worker());
-
-create policy "clinic staff read referred eye photos" on storage.objects
-  for select to authenticated
-  using (
-    bucket_id = 'eye-captures'
-    and exists (
-      select 1 from public.scans s
-      join public.referrals r on r.scan_id = s.id
-      where s.photo_path = storage.objects.name and r.clinic_id = public.my_clinic_id()
-    )
-  );
+-- The storage policies that limit who can read photos are in
+-- 20261113100500_eye_photo_policies.sql: changing policies on storage.objects needs the
+-- storage owner role, so that file is run from the Supabase dashboard's SQL editor.

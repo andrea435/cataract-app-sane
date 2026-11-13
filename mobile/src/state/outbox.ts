@@ -1,7 +1,7 @@
 import { File } from 'expo-file-system';
 import { supabase, EYE_CAPTURES_BUCKET } from '../lib/supabase';
 import { dropPhoto } from '../lib/localStore';
-import { ClinicRow, ReferralRow, ScanRow } from '../data/types';
+import { ClinicRow, ConsentBy, ReferralRow, ScanRow } from '../data/types';
 
 // Offline mode. Every new screening and referral is first written to an "outbox" kept on the
 // phone, then uploaded in order whenever there is signal. Records get their final id on the
@@ -23,6 +23,8 @@ export interface ScanJob {
   detected: boolean;
   severity: string | null;
   workerName: string;
+  /** Consent recorded on the consent screen (absent for jobs saved by older app versions). */
+  consent?: { at: string; version: string; by: ConsentBy; guardianName: string | null; share: boolean } | null;
   /** Copy of the photo in the app's folder, deleted once uploaded. */
   photoUri: string | null;
   /** The scan row is stored; only the photo is still to upload. */
@@ -41,6 +43,8 @@ export interface ReferralJob {
   clinicId: string;
   note: string | null;
   workerName: string;
+  /** When the patient agreed to share their result with this clinic. */
+  shareConsentAt?: string | null;
   createdAt: string;
   error?: string | null;
 }
@@ -67,6 +71,13 @@ function outcome(error: DbError): { kind: 'offline' } | { kind: 'rejected'; erro
   return isConnectionError(error) ? { kind: 'offline' } : { kind: 'rejected', error: error?.message || 'Refused by the server' };
 }
 
+function consentColumns(job: ScanJob) {
+  const c = job.consent;
+  return c
+    ? { consent_at: c.at, consent_version: c.version, consent_by: c.by, consent_guardian_name: c.guardianName, consent_share: c.share }
+    : {};
+}
+
 /** How a waiting screening is shown in History before it has uploaded. */
 export function pendingScanRow(job: ScanJob): ScanRow {
   return {
@@ -83,6 +94,7 @@ export function pendingScanRow(job: ScanJob): ScanRow {
     patient_record_id: null,
     patient: null,
     created_at: job.createdAt,
+    ...consentColumns(job),
     pending: true,
     local_photo_uri: job.photoUri,
   };
@@ -101,6 +113,7 @@ export function pendingReferralRow(job: ReferralJob, scans: ScanRow[], clinics: 
     worker_name: job.workerName,
     worker_note: job.note,
     clinic_note: null,
+    share_consent_at: job.shareConsentAt ?? null,
     created_at: job.createdAt,
     updated_at: job.createdAt,
     patient: scan
@@ -150,6 +163,7 @@ export async function uploadScan(job: ScanJob, onStored: () => void): Promise<Up
       detected: job.detected,
       severity: job.severity,
       worker_name: job.workerName,
+      ...consentColumns(job),
     });
     // Already there: an earlier attempt got through but its reply was lost.
     if (error && error.code !== UNIQUE_VIOLATION) return outcome(error);
@@ -182,6 +196,7 @@ export async function uploadReferral(job: ReferralJob): Promise<UploadOutcome<Re
     clinic_id: job.clinicId,
     worker_name: job.workerName,
     worker_note: job.note,
+    ...(job.shareConsentAt ? { share_consent_at: job.shareConsentAt } : {}),
   });
   if (error && error.code !== UNIQUE_VIOLATION) return outcome(error);
 

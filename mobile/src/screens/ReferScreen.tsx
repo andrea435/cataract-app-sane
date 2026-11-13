@@ -7,7 +7,7 @@ import { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
 import { useScreening } from '../state/ScreeningContext';
 import { BackLink, OutlineButton, PrimaryButton } from '../components/Buttons';
-import { Banner, EmptyState, Field } from '../components/ui';
+import { Banner, CheckRow, EmptyState, Field } from '../components/ui';
 import { CheckIcon, CloudIcon, PlusIcon, SendIcon } from '../components/icons';
 import { statusFields } from '../data/types';
 import { formatScannedAt } from '../data/format';
@@ -15,13 +15,15 @@ import { formatScannedAt } from '../data/format';
 type Props = NativeStackScreenProps<RootStackParamList, 'Refer'>;
 
 export default function ReferScreen({ navigation, route }: Props) {
-  const { clinics, history, currentResult, finishAndSave, sendReferral, setActiveTab } = useScreening();
+  const { clinics, history, currentResult, consent, finishAndSave, sendReferral, setActiveTab } = useScreening();
   const scanId = route.params?.scanId;
   const savedScan = scanId ? history.find(h => h.id === scanId) : undefined;
 
   const [clinicId, setClinicId] = useState<string | null>(clinics.length === 1 ? clinics[0].id : null);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
+  // Consent to share with the clinic, asked here when it wasn't given at screening.
+  const [shareTicked, setShareTicked] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<{ clinic: string; patient: string; queued: boolean } | null>(null);
   // Once the in-progress screening is saved, keep it so a retry doesn't save it twice.
@@ -46,8 +48,12 @@ export default function ReferScreen({ navigation, route }: Props) {
       ? { name: currentResult.name, meta: `${currentResult.eyeLabel} · ${currentResult.date}`, probability: currentResult.probability, status: currentResult.status }
       : null;
 
+  const known = savedScan ?? savedDraft.current;
+  const sharedAtScreening = known ? known.consent_share === true : consent?.share === true;
+  const canSend = !!clinicId && (sharedAtScreening || shareTicked);
+
   const send = async () => {
-    if (!clinicId) return;
+    if (!clinicId || !canSend) return;
     setBusy(true);
     setError(null);
     try {
@@ -58,7 +64,8 @@ export default function ReferScreen({ navigation, route }: Props) {
         setError("The screening couldn't be saved. Try again.");
         return;
       }
-      const res = await sendReferral({ scan, clinicId, note });
+      const shareConsentAt = sharedAtScreening ? scan.consent_at ?? new Date().toISOString() : new Date().toISOString();
+      const res = await sendReferral({ scan, clinicId, note, shareConsentAt });
       if (!res.ok) {
         setError(res.error);
         return;
@@ -172,13 +179,28 @@ export default function ReferScreen({ navigation, route }: Props) {
               style={{ minHeight: 84, textAlignVertical: 'top' }}
             />
           )}
+
+          {clinics.length > 0 && !sharedAtScreening && (
+            <View style={styles.consentCard}>
+              <Text style={styles.consentTitle}>Consent to share</Text>
+              <Text style={styles.consentText}>
+                The patient didn't agree to share their result with a clinic when they were screened. Ask them again: the clinic
+                will see their name, patient ID, eye photo and result.
+              </Text>
+              <CheckRow
+                checked={shareTicked}
+                onToggle={() => setShareTicked(v => !v)}
+                label="The patient (or guardian) now agrees to share their result with this clinic"
+              />
+            </View>
+          )}
         </ScrollView>
 
         <View style={styles.footer}>
           <PrimaryButton
             label={savedScan || savedDraft.current ? 'Send referral' : 'Save & send referral'}
             onPress={send}
-            disabled={!clinicId}
+            disabled={!canSend}
             loading={busy}
             icon={!busy ? <SendIcon /> : undefined}
           />
@@ -225,6 +247,9 @@ const styles = StyleSheet.create({
   radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.brand },
   optionName: { fontSize: 14, fontWeight: '600', color: colors.ink },
   optionMeta: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  consentCard: { padding: 14, borderRadius: 12, backgroundColor: colors.warningBg, gap: 6 },
+  consentTitle: { fontSize: 13, fontWeight: '700', color: colors.warning },
+  consentText: { fontSize: 12.5, lineHeight: 18, color: colors.textBody },
   footer: { paddingHorizontal: 24, paddingBottom: 12, paddingTop: 8 },
   successScreen: { paddingHorizontal: 24, paddingBottom: 20 },
   successBody: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },

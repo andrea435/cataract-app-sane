@@ -67,6 +67,11 @@ One row per screening of one eye.
 | `worker_name` | text | Health worker who did the screening (their profile name) |
 | `worker_id` | uuid, FK → `auth.users.id`, nullable | Defaults to the signed-in user |
 | `clinic_id` | text, FK → `clinics.id`, nullable | Present in the schema; not set by the app yet |
+| `consent_at` | timestamptz, nullable | When the patient (or guardian) agreed to the screening; `NULL` for screenings saved before consent was recorded |
+| `consent_version` | text, nullable | Version of the privacy notice read to them (`CONSENT_VERSION` in `src/data/content.ts`) |
+| `consent_by` | text, nullable | `patient` or `guardian` |
+| `consent_guardian_name` | text, nullable | Name of the parent or guardian, when they consented |
+| `consent_share` | boolean, nullable | Agreed at screening to share the result with a clinic for referral |
 | `created_at` | timestamptz | |
 
 `detected` and `severity` are computed in the app (`statusFields` in
@@ -103,12 +108,13 @@ One row per patient sent to a clinic. The clinic view lists the rows for its cli
 | `worker_id` | uuid, FK → `auth.users.id`, nullable | Defaults to the signed-in user |
 | `worker_note` | text, nullable | Note for the clinic, written when referring |
 | `clinic_note` | text, nullable | Written by clinic staff; shown to the health worker |
+| `share_consent_at` | timestamptz, nullable | When the patient agreed to share their result with the clinic (at screening, or asked again when referring). The app won't send a referral without it |
 | `created_at`, `updated_at` | timestamptz | `updated_at` is set by a trigger on every update |
 
 Triggers: `referrals_touch` keeps `updated_at` fresh; `referrals_sync_patient` (security
 definer) copies the status of the patient's newest referral to `patients.referral_status`;
 `referrals_guard_clinic_update` stops clinic staff changing anything but `status` and
-`clinic_note`. The table is in the
+`clinic_note` (including `share_consent_at`). The table is in the
 `supabase_realtime` publication so both sides of the app see changes live.
 
 ### `worker_settings`
@@ -193,7 +199,8 @@ Deploy changes with `supabase functions deploy manage-accounts`.
 `supabase/migrations/` holds the `patients` migration
 (`20261026062000_create_patients.sql`), the clinics and referrals migration
 (`20261113080000_clinics_and_referrals.sql`) and the accounts and access rules migration
-(`20261113100000_accounts_and_access_rules.sql`). The photo policies are in
+(`20261113100000_accounts_and_access_rules.sql`) and the consent columns
+(`20261113150000_patient_consent.sql`). The photo policies are in
 `20261113100500_eye_photo_policies.sql`, which must be run from the Supabase dashboard's
 SQL editor because only the storage owner can change policies on `storage.objects`. The earlier tables (`scans`, `clinics`,
 `worker_settings`) and the storage bucket were created directly in the Supabase project and

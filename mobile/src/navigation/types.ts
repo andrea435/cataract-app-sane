@@ -8,6 +8,8 @@ export type RootStackParamList = {
   // Health worker
   Main: undefined;
   PatientInfo: undefined;
+  // Patient consent, before the eye photo.
+  Consent: undefined;
   Capture: undefined;
   Scanning: undefined;
   Disclaimer: undefined;
@@ -23,8 +25,9 @@ export type RootStackParamList = {
   // Create a login: another health worker, or staff of one clinic.
   AddAccount: { kind: 'worker' } | { kind: 'clinic'; clinicId: string };
 
-  // Both roles
+  // Both roles (and signed out)
   ChangePassword: undefined;
+  PrivacyNotice: undefined;
 
   // Clinic staff
   ClinicHome: undefined;

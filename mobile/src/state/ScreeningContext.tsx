@@ -5,7 +5,8 @@ import { supabase, EYE_CAPTURES_BUCKET, PHOTO_URL_TTL_SECONDS, manageAccounts, s
 import { keepPhoto, newId, readJson, writeJson } from '../lib/localStore';
 import { Job, REFERRAL_SELECT, ReferralJob, SCAN_SELECT, ScanJob, isConnectionError, pendingReferralRow, pendingScanRow, uploadReferral, uploadScan } from './outbox';
 import { colors } from '../theme/colors';
-import { ClinicInput, ClinicRow, DisplayResult, Eye, ProfileRow, ReferralRow, ReferralStatus, ScanRow, WorkerSettingsRow, statusFields } from '../data/types';
+import { CONSENT_VERSION } from '../data/content';
+import { ClinicInput, ClinicRow, ConsentDraft, DisplayResult, Eye, ProfileRow, ReferralRow, ReferralStatus, ScanRow, WorkerSettingsRow, statusFields } from '../data/types';
 import { formatDate, formatScannedAt } from '../data/format';
 
 export type TabKey = 'scan' | 'history' | 'clinics' | 'profile';
@@ -93,7 +94,7 @@ interface ScreeningContextValue {
   // referrals
   latestReferralFor: (patientId: string | null | undefined) => ReferralRow | undefined;
   /** Sends a referral, or keeps it on the phone to send when there is signal (`queued`). */
-  sendReferral: (args: { scan: ScanRow; clinicId: string; note: string }) => Promise<Result<{ row: ReferralRow; queued: boolean }>>;
+  sendReferral: (args: { scan: ScanRow; clinicId: string; note: string; shareConsentAt: string | null }) => Promise<Result<{ row: ReferralRow; queued: boolean }>>;
   updateReferral: (id: string, patch: { status?: ReferralStatus; clinic_note?: string | null }) => Promise<Result>;
 
   activeTab: TabKey;
@@ -106,6 +107,9 @@ interface ScreeningContextValue {
   setPatientId: (v: string) => void;
   eye: Eye;
   setEye: (v: Eye) => void;
+  /** Consent given on the consent screen; required before the photo. */
+  consent: ConsentDraft | null;
+  setConsent: (v: ConsentDraft | null) => void;
   disclaimerChecked: boolean;
   setDisclaimerChecked: (v: boolean) => void;
   capturedPhotoUri: string | null;
@@ -146,6 +150,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
   const [patientId, setPatientId] = useState('');
   const [eye, setEye] = useState<Eye>('Left');
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
+  const [consent, setConsent] = useState<ConsentDraft | null>(null);
   const [capturedPhotoUri, setCapturedPhotoUri] = useState<string | null>(null);
 
   const [currentResult, setCurrentResult] = useState<DisplayResult | null>(null);
@@ -584,7 +589,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
   );
 
   const sendReferral = useCallback(
-    async ({ scan, clinicId, note }: { scan: ScanRow; clinicId: string; note: string }): Promise<Result<{ row: ReferralRow; queued: boolean }>> => {
+    async ({ scan, clinicId, note, shareConsentAt }: { scan: ScanRow; clinicId: string; note: string; shareConsentAt: string | null }): Promise<Result<{ row: ReferralRow; queued: boolean }>> => {
       const job: ReferralJob = {
         kind: 'referral',
         id: newId(),
@@ -593,6 +598,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
         clinicId,
         note: note.trim() || null,
         workerName: profile?.full_name ?? 'Health worker',
+        shareConsentAt,
         createdAt: new Date().toISOString(),
       };
       saveOutbox([...outboxRef.current, job]);
@@ -638,6 +644,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
     setPatientId('');
     setEye('Left');
     setDisclaimerChecked(false);
+    setConsent(null);
     setCapturedPhotoUri(null);
     setCurrentResult(null);
     setViewOnly(false);
@@ -699,6 +706,9 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
         detected: r.status.detected,
         severity: r.status.severity,
         workerName: profile?.full_name ?? 'Health worker',
+        consent: consent
+          ? { at: consent.at, version: CONSENT_VERSION, by: consent.by, guardianName: consent.by === 'guardian' ? consent.guardianName.trim() || null : null, share: consent.share }
+          : null,
         photoUri: capturedPhotoUri ? keepPhoto(capturedPhotoUri, id) : null,
         createdAt: new Date().toISOString(),
       };
@@ -709,7 +719,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setSaving(false);
     }
-  }, [currentResult, patientId, capturedPhotoUri, profile, resetDraft, saveOutbox, syncWithin]);
+  }, [currentResult, patientId, capturedPhotoUri, consent, profile, resetDraft, saveOutbox, syncWithin]);
 
   const value = useMemo<ScreeningContextValue>(
     () => ({
@@ -721,7 +731,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
       latestReferralFor, sendReferral, updateReferral,
       activeTab, setActiveTab,
       patientName, setPatientName, patientId, setPatientId, eye, setEye,
-      disclaimerChecked, setDisclaimerChecked, capturedPhotoUri, setCapturedPhotoUri, resetDraft,
+      consent, setConsent, disclaimerChecked, setDisclaimerChecked, capturedPhotoUri, setCapturedPhotoUri, resetDraft,
       currentResult, viewOnly, computeCurrentResult, viewHistoryItem,
       saving, finishAndSave,
     }),
@@ -733,7 +743,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
       addClinic, updateClinic, deleteClinic,
       latestReferralFor, sendReferral, updateReferral,
       activeTab,
-      patientName, patientId, eye, disclaimerChecked, capturedPhotoUri, resetDraft,
+      patientName, patientId, eye, consent, disclaimerChecked, capturedPhotoUri, resetDraft,
       currentResult, viewOnly, computeCurrentResult, viewHistoryItem,
       saving, finishAndSave,
     ]

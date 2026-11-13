@@ -41,6 +41,7 @@ export default function ProfileTab({ navigation }: { navigation: NativeStackNavi
     },
     { label: 'Notifications', isToggle: true },
     { label: 'About the AI model', value: settings?.ai_model_version ?? 'v2.3' },
+    { label: 'Privacy notice', onPress: () => navigation.navigate('PrivacyNotice') },
     { label: 'Help & support' },
     { label: 'Log out', onPress: confirmSignOut, danger: true },
   ];

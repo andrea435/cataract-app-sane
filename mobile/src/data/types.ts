@@ -1,5 +1,15 @@
 export type Eye = 'Left' | 'Right';
 
+export type ConsentBy = 'patient' | 'guardian';
+
+/** The consent given on the consent screen for the screening in progress. */
+export interface ConsentDraft {
+  by: ConsentBy;
+  guardianName: string;
+  share: boolean;
+  at: string;
+}
+
 export type ReferralStatus = 'referred' | 'attended' | 'treated';
 
 export const REFERRAL_STATUSES: { value: ReferralStatus; label: string }[] = [
@@ -34,6 +44,13 @@ export interface ScanRow {
   patient_record_id: string | null;
   patient: PatientRow | null;
   created_at: string;
+  /** Patient consent recorded before the photo (null for screenings saved before consent was recorded). */
+  consent_at?: string | null;
+  consent_version?: string | null;
+  consent_by?: ConsentBy | null;
+  consent_guardian_name?: string | null;
+  /** Agreed to share the result with a clinic for referral. */
+  consent_share?: boolean | null;
   /** Local only: saved on this phone and not uploaded yet (offline mode). */
   pending?: boolean;
   /** Local only: the photo file on this phone, for screenings not uploaded yet. */
@@ -74,6 +91,8 @@ export interface ReferralRow {
   worker_name: string;
   worker_note: string | null;
   clinic_note: string | null;
+  /** When the patient agreed to share their result with the clinic. */
+  share_consent_at?: string | null;
   created_at: string;
   updated_at: string;
   patient: PatientRow | null;

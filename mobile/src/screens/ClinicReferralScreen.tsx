@@ -65,6 +65,12 @@ export default function ClinicReferralScreen({ navigation, route }: Props) {
     ['Eye', scan?.eye_label ?? 'Unknown'],
     ['Screened', scan ? formatScannedAt(scan.scanned_at) : 'Unknown'],
     ['Referred by', `${referral.worker_name} · ${formatShortDate(referral.created_at)}`],
+    [
+      'Consent to share',
+      referral.share_consent_at
+        ? `Given ${formatShortDate(referral.share_consent_at)}${scan?.consent_by === 'guardian' ? ` by ${scan.consent_guardian_name || 'guardian'}` : ''}`
+        : 'Not recorded (referred before consent was asked)',
+    ],
   ];
 
   return (

@@ -18,12 +18,10 @@ export default function RecommendScreen({ navigation }: Props) {
   const { status } = currentResult;
   const steps = status.detected ? RECOMMEND_STEPS_DETECTED : RECOMMEND_STEPS_CLEAR;
 
-  const findClinic = () => {
-    setActiveTab('clinics');
-    navigation.navigate('Main');
-  };
+  const referToClinic = () => navigation.navigate('Refer');
 
   const finish = async () => {
+    if (saving) return;
     await finishAndSave();
     setActiveTab('scan');
     navigation.navigate('Main');
@@ -48,8 +46,12 @@ export default function RecommendScreen({ navigation }: Props) {
       </ScrollView>
 
       <View style={styles.actions}>
-        {status.detected && <OutlineButton label="Find nearby clinic" onPress={findClinic} />}
-        <PrimaryButton label="Finish & save to history" onPress={finish} loading={saving} />
+        {status.detected && !currentResult.id && <PrimaryButton label="Refer to a clinic" onPress={referToClinic} />}
+        {status.detected && !currentResult.id ? (
+          <OutlineButton label={saving ? 'Saving…' : 'Save without referring'} onPress={finish} />
+        ) : (
+          <PrimaryButton label="Finish & save to history" onPress={finish} loading={saving} />
+        )}
       </View>
     </SafeAreaView>
   );

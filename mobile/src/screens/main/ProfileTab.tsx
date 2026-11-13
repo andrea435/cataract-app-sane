@@ -4,6 +4,8 @@ import { Text } from '../../components/Text';
 import { colors } from '../../theme/colors';
 import { useScreening } from '../../state/ScreeningContext';
 import { computeStats } from '../../data/stats';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../navigation/types';
 
 function initialsOf(name: string): string {
   return name
@@ -15,7 +17,7 @@ function initialsOf(name: string): string {
     .toUpperCase();
 }
 
-export default function ProfileTab() {
+export default function ProfileTab({ navigation }: { navigation: NativeStackNavigationProp<RootStackParamList, 'Main'> }) {
   const { history, settings, toggleNotifications } = useScreening();
   const stats = computeStats(history);
   const workerName = settings?.worker_name ?? 'Naomi Achieng';
@@ -23,7 +25,8 @@ export default function ProfileTab() {
   const region = settings?.worker_region ?? 'Kisumu County';
   const notifOn = settings?.notifications_enabled ?? true;
 
-  const rows: { label: string; value?: string; isToggle?: boolean }[] = [
+  const rows: { label: string; value?: string; isToggle?: boolean; onPress?: () => void }[] = [
+    { label: 'Open clinic view', value: 'For clinic staff', onPress: () => navigation.navigate('ClinicSignIn') },
     { label: 'Language', value: 'English' },
     { label: 'Sync data', value: 'Auto' },
     { label: 'Notifications', isToggle: true },
@@ -61,7 +64,7 @@ export default function ProfileTab() {
 
       <View>
         {rows.map((row, i) => (
-          <View key={i} style={styles.settingRow}>
+          <Pressable key={i} style={styles.settingRow} onPress={row.onPress} disabled={!row.onPress}>
             <Text style={styles.settingLabel}>{row.label}</Text>
             {row.isToggle ? (
               <Pressable onPress={toggleNotifications} style={[styles.toggle, { backgroundColor: notifOn ? colors.brand : colors.border }]}>
@@ -70,7 +73,7 @@ export default function ProfileTab() {
             ) : (
               <Text style={styles.settingValue}>{row.value ? `${row.value} ›` : '›'}</Text>
             )}
-          </View>
+          </Pressable>
         ))}
       </View>
     </View>

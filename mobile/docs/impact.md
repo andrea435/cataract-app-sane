@@ -35,8 +35,8 @@ Each step above has a matching feature in the app.
 | No one to examine the eye | A community health worker with an ordinary smartphone can screen a patient in a couple of minutes, with no specialist equipment. Guided capture (an alignment circle and on-screen tips) helps non-specialists take a usable photo. |
 | Findings are lost or inconsistent | Every screening is saved with the patient's name, ID, eye, probability, severity, photo, date and health worker, in a shared online history. The same thresholds are applied to every patient (below 50% clear; Mild, Moderate, Severe above that). |
 | Unclear who to refer and how fast | The result screen gives a clear "Cataract detected" or "No cataract detected" and a severity, and the recommended steps tell the worker exactly what to do: refer within 2 weeks if detected, routine follow-up in 12 months if clear. |
-| "Go to a clinic" with nowhere specific | The Clinics tab lists nearby referral clinics with address and phone number, so the worker can send the patient to a named facility. |
-| No one follows up | Each patient has a **referral status** (Referred, Attended, Treated) that the worker updates on later visits. Patients who were referred but have not attended are visible in History and can be followed up. |
+| "Go to a clinic" with nowhere specific | The worker refers the patient to a named clinic from the result, with a note. The clinic receives the referral, with the screening photo and score, in its own clinic view. |
+| No one follows up | The clinic marks each patient **Attended** and **Treated** in its clinic view, and the worker sees the status change live. Patients who were referred but have not attended stay visible to both sides and can be followed up. |
 | No one knows the outcome | Because referral status is stored per patient, a programme can count how many people were screened, flagged, referred, attended and treated, and see exactly where they drop out. That is the data needed to measure eCSC locally. |
 
 The result is a single chain from the first photo to the operation, instead of a series of
@@ -86,8 +86,8 @@ patients at scale:
 3. **Offline use.** Let screenings be saved on the phone and synced later, for areas with
    no signal.
 4. **Translations** of the app text into local languages.
-5. **Referral linked to the patient.** Record which clinic each patient was sent to, and let
-   clinics confirm attendance and treatment directly.
+5. **Proper clinic accounts.** Clinics now confirm attendance and treatment directly, but
+   sign in with a shared 6-digit code. Replace it with individual staff accounts.
 6. **Clinical and regulatory approval** where screening software counts as a medical device.
 7. **A field pilot** with a partner health programme, measuring how many flagged patients
    reach treatment compared with the existing process.

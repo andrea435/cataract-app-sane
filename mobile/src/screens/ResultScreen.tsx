@@ -1,24 +1,26 @@
 import React from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '../components/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
 import { useScreening } from '../state/ScreeningContext';
-import { BackLink, PrimaryButton } from '../components/Buttons';
+import { BackLink, OutlineButton, PrimaryButton } from '../components/Buttons';
 import { RingGauge } from '../components/RingGauge';
-import { REFERRAL_STATUSES } from '../data/types';
+import { StatusStepper } from '../components/ui';
+import { formatShortDate } from '../data/format';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Result'>;
 
 export default function ResultScreen({ navigation }: Props) {
-  const { currentResult, viewOnly, setActiveTab, history, setReferralStatus } = useScreening();
+  const { currentResult, viewOnly, setActiveTab, history, latestReferralFor, updateReferral } = useScreening();
 
   if (!currentResult) return null;
   const { status } = currentResult;
   // Referral status can only be tracked once the scan is saved.
   const patient = currentResult.id ? history.find(h => h.id === currentResult.id)?.patient : undefined;
+  const referral = latestReferralFor(patient?.id);
 
   const back = () => {
     if (viewOnly) {
@@ -63,23 +65,25 @@ export default function ResultScreen({ navigation }: Props) {
           <Text style={styles.thumbLabel}>captured{'\n'}eye image</Text>
         </View>
 
-        {patient && (
+        {referral && (
           <View style={styles.referralCard}>
-            <Text style={styles.referralTitle}>Referral status</Text>
-            <View style={styles.referralOptions}>
-              {REFERRAL_STATUSES.map(opt => {
-                const active = patient.referral_status === opt.value;
-                return (
-                  <Pressable
-                    key={opt.value}
-                    style={[styles.referralOption, active && styles.referralOptionActive]}
-                    onPress={() => setReferralStatus(patient.id, active ? null : opt.value)}
-                  >
-                    <Text style={[styles.referralOptionText, active && styles.referralOptionTextActive]}>{opt.label}</Text>
-                  </Pressable>
-                );
-              })}
+            <View style={styles.referralHeader}>
+              <Text style={styles.referralTitle}>Referred to {referral.clinic?.name ?? 'clinic'}</Text>
+              <Text style={styles.referralDate}>{formatShortDate(referral.created_at)}</Text>
             </View>
+            <StatusStepper status={referral.status} onSelect={s => s !== referral.status && updateReferral(referral.id, { status: s })} />
+            {!!referral.clinic_note && (
+              <View style={styles.clinicNote}>
+                <Text style={styles.clinicNoteLabel}>Note from clinic</Text>
+                <Text style={styles.clinicNoteText}>{referral.clinic_note}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {patient && !referral && status.detected && (
+          <View style={{ marginBottom: 12 }}>
+            <OutlineButton label="Refer to a clinic" onPress={() => navigation.navigate('Refer', { scanId: currentResult.id ?? undefined })} />
           </View>
         )}
 
@@ -162,36 +166,38 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 22,
   },
+  referralHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    gap: 8,
+    marginBottom: 14,
+  },
   referralTitle: {
+    flex: 1,
     fontSize: 12.5,
     fontWeight: '600',
     color: colors.textLabel,
-    marginBottom: 10,
   },
-  referralOptions: {
-    flexDirection: 'row',
-    gap: 8,
+  referralDate: {
+    fontSize: 11.5,
+    color: colors.textSubtle,
   },
-  referralOption: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 9,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.cardBg,
+  clinicNote: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.divider,
+    gap: 4,
   },
-  referralOptionActive: {
-    borderColor: colors.brand,
-    backgroundColor: colors.brandTint,
-  },
-  referralOptionText: {
-    fontSize: 12.5,
-    fontWeight: '600',
+  clinicNoteLabel: {
+    fontSize: 11.5,
     color: colors.textMuted,
   },
-  referralOptionTextActive: {
-    color: colors.brandDark,
+  clinicNoteText: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textBody,
   },
   thumbLabel: {
     fontSize: 11.5,

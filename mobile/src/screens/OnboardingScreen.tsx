@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '../components/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -49,6 +49,12 @@ export default function OnboardingScreen({ navigation }: Props) {
           <PrimaryButton label={slide.cta} onPress={next} />
         </View>
       </View>
+
+      <Pressable onPress={() => navigation.navigate('ClinicSignIn')} hitSlop={8} style={styles.clinicLink}>
+        <Text style={styles.clinicLinkText}>
+          Clinic staff? <Text style={styles.clinicLinkStrong}>Open clinic view</Text>
+        </Text>
+      </Pressable>
     </SafeAreaView>
   );
 }
@@ -103,5 +109,19 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     gap: 12,
+  },
+  clinicLink: {
+    alignSelf: 'center',
+    paddingTop: 16,
+    paddingBottom: 4,
+  },
+  clinicLinkText: {
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  clinicLinkStrong: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.brand,
   },
 });

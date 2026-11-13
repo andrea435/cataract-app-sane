@@ -2,13 +2,23 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { File } from 'expo-file-system';
 import { supabase, EYE_CAPTURES_BUCKET } from '../lib/supabase';
 import { colors } from '../theme/colors';
-import { ClinicRow, DisplayResult, Eye, ReferralStatus, ScanRow, WorkerSettingsRow, statusFields } from '../data/types';
+import { ClinicInput, ClinicRow, DisplayResult, Eye, ReferralRow, ReferralStatus, ScanRow, WorkerSettingsRow, statusFields } from '../data/types';
+import { Session, loadSession, saveSession } from './session';
 import { formatDate, formatScannedAt } from '../data/format';
 
 export type TabKey = 'scan' | 'history' | 'clinics' | 'profile';
 
 // Scans come back with their linked patient embedded.
 const SCAN_SELECT = '*, patient:patients(*)';
+// Referrals come back with the patient, the screening behind them and the clinic's name.
+const REFERRAL_SELECT = '*, patient:patients(*), scan:scans(*), clinic:clinics(id, name)';
+
+// Postgres foreign-key violation: the clinic still has referrals pointing at it.
+const FK_VIOLATION = '23503';
+
+export type Result<T = void> = { ok: true; value: T } | { ok: false; error: string };
+
+const NETWORK_ERROR = "Couldn't reach the server. Check your connection and try again.";
 
 function publicPhotoUrl(path: string | null): string | null {
   if (!path) return null;
@@ -31,12 +41,27 @@ function toDisplayResult(row: ScanRow): DisplayResult {
 interface ScreeningContextValue {
   history: ScanRow[];
   clinics: ClinicRow[];
+  referrals: ReferralRow[];
   settings: WorkerSettingsRow | null;
   loading: boolean;
+  loadError: boolean;
   refreshAll: () => Promise<void>;
-  bookClinic: (id: string) => Promise<void>;
   toggleNotifications: () => Promise<void>;
-  setReferralStatus: (patientId: string, status: ReferralStatus | null) => Promise<void>;
+
+  // clinics (managed by health workers)
+  addClinic: (input: ClinicInput) => Promise<Result<ClinicRow>>;
+  updateClinic: (id: string, input: ClinicInput) => Promise<Result>;
+  deleteClinic: (id: string) => Promise<Result>;
+
+  // referrals
+  latestReferralFor: (patientId: string | null | undefined) => ReferralRow | undefined;
+  sendReferral: (args: { patientId: string; scanId: string | null; clinicId: string; note: string }) => Promise<Result<ReferralRow>>;
+  updateReferral: (id: string, patch: { status?: ReferralStatus; clinic_note?: string | null }) => Promise<Result>;
+
+  // who is using this phone: a health worker, or staff of one clinic
+  session: Session;
+  signInClinic: (clinicId: string, code: string) => boolean;
+  signOut: () => void;
 
   activeTab: TabKey;
   setActiveTab: (t: TabKey) => void;
@@ -60,7 +85,7 @@ interface ScreeningContextValue {
   viewHistoryItem: (row: ScanRow) => void;
 
   saving: boolean;
-  finishAndSave: () => Promise<void>;
+  finishAndSave: () => Promise<ScanRow | null>;
 }
 
 const ScreeningContext = createContext<ScreeningContextValue | null>(null);
@@ -68,8 +93,11 @@ const ScreeningContext = createContext<ScreeningContextValue | null>(null);
 export function ScreeningProvider({ children }: { children: React.ReactNode }) {
   const [history, setHistory] = useState<ScanRow[]>([]);
   const [clinics, setClinics] = useState<ClinicRow[]>([]);
+  const [referrals, setReferrals] = useState<ReferralRow[]>([]);
   const [settings, setSettings] = useState<WorkerSettingsRow | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [session, setSession] = useState<Session>(loadSession);
 
   const [activeTab, setActiveTab] = useState<TabKey>('scan');
 
@@ -84,25 +112,146 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
 
   const [saving, setSaving] = useState(false);
 
-  const refreshAll = useCallback(async () => {
-    const [historyRes, clinicsRes, settingsRes] = await Promise.all([
-      supabase.from('scans').select(SCAN_SELECT).order('scanned_at', { ascending: false }).order('created_at', { ascending: false }),
-      supabase.from('clinics').select('*').order('distance', { ascending: true }),
-      supabase.from('worker_settings').select('*').eq('id', 1).maybeSingle(),
-    ]);
-    if (historyRes.data) setHistory(historyRes.data as ScanRow[]);
-    if (clinicsRes.data) setClinics(clinicsRes.data as ClinicRow[]);
-    if (settingsRes.data) setSettings(settingsRes.data as WorkerSettingsRow);
-    setLoading(false);
+  const loadReferrals = useCallback(async () => {
+    const res = await supabase.from('referrals').select(REFERRAL_SELECT).order('created_at', { ascending: false });
+    if (res.data) setReferrals(res.data as ReferralRow[]);
+    return !res.error;
   }, []);
+
+  const refreshAll = useCallback(async () => {
+    try {
+      const [historyRes, clinicsRes, settingsRes, referralsOk] = await Promise.all([
+        supabase.from('scans').select(SCAN_SELECT).order('scanned_at', { ascending: false }).order('created_at', { ascending: false }),
+        supabase.from('clinics').select('*').order('name', { ascending: true }),
+        supabase.from('worker_settings').select('*').eq('id', 1).maybeSingle(),
+        loadReferrals(),
+      ]);
+      if (historyRes.data) setHistory(historyRes.data as ScanRow[]);
+      if (clinicsRes.data) setClinics(clinicsRes.data as ClinicRow[]);
+      if (settingsRes.data) setSettings(settingsRes.data as WorkerSettingsRow);
+      setLoadError(!!(historyRes.error || clinicsRes.error || !referralsOk));
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [loadReferrals]);
 
   useEffect(() => {
     refreshAll();
   }, [refreshAll]);
 
-  const bookClinic = useCallback(async (id: string) => {
-    setClinics(prev => prev.map(c => (c.id === id ? { ...c, booked_at: new Date().toISOString() } : c)));
-    await supabase.from('clinics').update({ booked_at: new Date().toISOString() }).eq('id', id);
+  // Live updates: when a clinic marks a patient attended/treated (or a worker sends a new
+  // referral), every open app picks it up without a manual refresh.
+  useEffect(() => {
+    const channel = supabase
+      .channel('referrals-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'referrals' }, () => {
+        loadReferrals();
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loadReferrals]);
+
+  // Keep the patient's status on History rows in step with their latest referral.
+  const syncPatientStatus = useCallback((patientId: string, status: ReferralStatus) => {
+    setHistory(prev =>
+      prev.map(s => (s.patient_record_id === patientId && s.patient ? { ...s, patient: { ...s.patient, referral_status: status } } : s))
+    );
+  }, []);
+
+  const addClinic = useCallback(async (input: ClinicInput): Promise<Result<ClinicRow>> => {
+    const { data, error } = await supabase.from('clinics').insert(input).select('*').single();
+    if (error || !data) return { ok: false, error: NETWORK_ERROR };
+    setClinics(prev => [...prev, data as ClinicRow].sort((a, b) => a.name.localeCompare(b.name)));
+    return { ok: true, value: data as ClinicRow };
+  }, []);
+
+  const updateClinic = useCallback(async (id: string, input: ClinicInput): Promise<Result> => {
+    const { error } = await supabase.from('clinics').update(input).eq('id', id);
+    if (error) return { ok: false, error: NETWORK_ERROR };
+    setClinics(prev => prev.map(c => (c.id === id ? { ...c, ...input } : c)).sort((a, b) => a.name.localeCompare(b.name)));
+    // Referral cards show the clinic name, so refresh them too.
+    setReferrals(prev => prev.map(r => (r.clinic_id === id ? { ...r, clinic: { id, name: input.name } } : r)));
+    return { ok: true, value: undefined };
+  }, []);
+
+  const deleteClinic = useCallback(async (id: string): Promise<Result> => {
+    const { error } = await supabase.from('clinics').delete().eq('id', id);
+    if (error) {
+      return {
+        ok: false,
+        error: error.code === FK_VIOLATION ? 'This clinic has referrals, so it can\'t be removed. You can still edit its details.' : NETWORK_ERROR,
+      };
+    }
+    setClinics(prev => prev.filter(c => c.id !== id));
+    return { ok: true, value: undefined };
+  }, []);
+
+  const latestReferralFor = useCallback(
+    (patientId: string | null | undefined) => (patientId ? referrals.find(r => r.patient_id === patientId) : undefined),
+    [referrals]
+  );
+
+  const sendReferral = useCallback(
+    async ({ patientId, scanId, clinicId, note }: { patientId: string; scanId: string | null; clinicId: string; note: string }): Promise<Result<ReferralRow>> => {
+      const { data, error } = await supabase
+        .from('referrals')
+        .insert({
+          patient_id: patientId,
+          scan_id: scanId,
+          clinic_id: clinicId,
+          worker_name: settings?.worker_name ?? 'Naomi Achieng',
+          worker_note: note.trim() || null,
+        })
+        .select(REFERRAL_SELECT)
+        .single();
+      if (error || !data) return { ok: false, error: NETWORK_ERROR };
+      const row = data as ReferralRow;
+      setReferrals(prev => [row, ...prev.filter(r => r.id !== row.id)]);
+      syncPatientStatus(patientId, row.status);
+      return { ok: true, value: row };
+    },
+    [settings, syncPatientStatus]
+  );
+
+  const updateReferral = useCallback(
+    async (id: string, patch: { status?: ReferralStatus; clinic_note?: string | null }): Promise<Result> => {
+      const before = referrals.find(r => r.id === id);
+      setReferrals(prev => prev.map(r => (r.id === id ? { ...r, ...patch, updated_at: new Date().toISOString() } : r)));
+      if (before && patch.status) syncPatientStatus(before.patient_id, patch.status);
+      const { error } = await supabase.from('referrals').update(patch).eq('id', id);
+      if (error) {
+        // Roll back the optimistic change so the screen shows what is really stored.
+        if (before) {
+          setReferrals(prev => prev.map(r => (r.id === id ? before : r)));
+          if (patch.status) syncPatientStatus(before.patient_id, before.status);
+        }
+        return { ok: false, error: NETWORK_ERROR };
+      }
+      return { ok: true, value: undefined };
+    },
+    [referrals, syncPatientStatus]
+  );
+
+  const signInClinic = useCallback(
+    (clinicId: string, code: string) => {
+      const clinic = clinics.find(c => c.id === clinicId);
+      if (!clinic || clinic.access_code !== code.trim()) return false;
+      const next: Session = { role: 'clinic', clinicId };
+      setSession(next);
+      saveSession(next);
+      return true;
+    },
+    [clinics]
+  );
+
+  const signOut = useCallback(() => {
+    const next: Session = { role: 'worker' };
+    setSession(next);
+    saveSession(next);
   }, []);
 
   const toggleNotifications = useCallback(async () => {
@@ -110,14 +259,6 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
     setSettings(prev => (prev ? { ...prev, notifications_enabled: next } : prev));
     await supabase.from('worker_settings').update({ notifications_enabled: next }).eq('id', 1);
   }, [settings]);
-
-  const setReferralStatus = useCallback(async (patientId: string, status: ReferralStatus | null) => {
-    // A patient can have several scans; keep every history row in sync.
-    setHistory(prev =>
-      prev.map(s => (s.patient_record_id === patientId && s.patient ? { ...s, patient: { ...s.patient, referral_status: status } } : s))
-    );
-    await supabase.from('patients').update({ referral_status: status }).eq('id', patientId);
-  }, []);
 
   const resetDraft = useCallback(() => {
     setPatientName('');
@@ -149,15 +290,16 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
     setViewOnly(true);
   }, []);
 
-  const finishAndSave = useCallback(async () => {
+  const finishAndSave = useCallback(async (): Promise<ScanRow | null> => {
     const r = currentResult;
-    if (!r) return;
+    if (!r) return null;
     if (r.id) {
       // Already-saved historical record being re-viewed: nothing new to persist.
       resetDraft();
-      return;
+      return history.find(h => h.id === r.id) ?? null;
     }
     setSaving(true);
+    let saved: ScanRow | null = null;
     try {
       // Reuse the patient record when the worker entered a known patient ID; otherwise create one.
       const externalId = patientId.trim() || null;
@@ -201,17 +343,22 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
             // Photo upload is best-effort; the scan record itself is already saved.
           }
         }
-        setHistory(prev => [{ ...(inserted as ScanRow), photo_path: photoPath }, ...prev]);
+        saved = { ...(inserted as ScanRow), photo_path: photoPath };
+        setHistory(prev => [saved as ScanRow, ...prev]);
       }
     } finally {
       setSaving(false);
       resetDraft();
     }
-  }, [currentResult, patientId, capturedPhotoUri, settings, resetDraft]);
+    return saved;
+  }, [currentResult, history, patientId, capturedPhotoUri, settings, resetDraft]);
 
   const value = useMemo<ScreeningContextValue>(
     () => ({
-      history, clinics, settings, loading, refreshAll, bookClinic, toggleNotifications, setReferralStatus,
+      history, clinics, referrals, settings, loading, loadError, refreshAll, toggleNotifications,
+      addClinic, updateClinic, deleteClinic,
+      latestReferralFor, sendReferral, updateReferral,
+      session, signInClinic, signOut,
       activeTab, setActiveTab,
       patientName, setPatientName, patientId, setPatientId, eye, setEye,
       disclaimerChecked, setDisclaimerChecked, capturedPhotoUri, setCapturedPhotoUri, resetDraft,
@@ -219,7 +366,10 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
       saving, finishAndSave,
     }),
     [
-      history, clinics, settings, loading, refreshAll, bookClinic, toggleNotifications, setReferralStatus,
+      history, clinics, referrals, settings, loading, loadError, refreshAll, toggleNotifications,
+      addClinic, updateClinic, deleteClinic,
+      latestReferralFor, sendReferral, updateReferral,
+      session, signInClinic, signOut,
       activeTab,
       patientName, patientId, eye, disclaimerChecked, capturedPhotoUri, resetDraft,
       currentResult, viewOnly, computeCurrentResult, viewHistoryItem,

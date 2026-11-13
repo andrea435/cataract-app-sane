@@ -26,7 +26,8 @@ because it is stored online, not on the phone.
 ## 2. First launch
 
 Three welcome screens explain what the app does. Tap **Next** to read them, or **Skip** to
-go straight to the app.
+go straight to the app. Clinic staff tap **Clinic staff? Open clinic view** at the bottom
+instead (see [section 6](#6-for-clinic-staff-the-clinic-view)).
 
 ## 3. The main screen
 
@@ -36,7 +37,7 @@ The app has four tabs at the bottom.
 | --- | --- |
 | **Scan** | Your screenings today, how many were flagged for referral, the **Start new screening** button, and your three most recent screenings |
 | **History** | Every screening saved, newest first, with result, confidence and referral status |
-| **Clinics** | Nearby clinics for referral, with address and phone number |
+| **Clinics** | The clinics you refer to (add and edit them here) and every referral you have sent, with its status |
 | **Profile** | Your name and region, your total, flagged and this-week counts, and settings |
 
 ## 4. Doing a screening
@@ -106,47 +107,83 @@ The app lists what to do next.
 - **No cataract detected:** no referral needed now, advise routine eye protection, and
   schedule a routine screening in 12 months.
 
-Tap **Finish & save to history**. The screening and photo are saved and appear in History.
+- **Cataract detected:** tap **Refer to a clinic** to save the screening and send the
+  patient to a clinic in one go (see below), or **Save without referring**.
+- **No cataract detected:** tap **Finish & save to history**.
 
-> **Save before looking for a clinic.** When a cataract is detected, the screen also shows
-> **Find nearby clinic**. In the current version, tapping it opens the Clinics tab
-> **without saving the screening**. Tap **Finish & save to history** first, then go to the
-> Clinics tab.
+The screening and photo are saved and appear in History.
 
-## 5. Referring a patient and tracking the referral
+## 5. Clinics and referrals
 
-1. Open the **Clinics** tab. Clinics are listed nearest first, with their address and phone
-   number.
-2. Tap **Refer patient** on the clinic you are sending the patient to. The button changes
-   to **Referral sent**. (In this version this marks the clinic, not a specific patient.)
-3. Track the patient's progress: open the **History** tab, tap the patient's screening,
-   and under **Referral status** choose:
-   - **Referred**: the patient has been sent to a clinic.
-   - **Attended**: the patient went to the clinic.
-   - **Treated**: the patient received treatment.
+### Adding clinics
 
-   Tap the selected status again to clear it ("Not referred").
+Open the **Clinics** tab and tap **Add**. Enter the clinic's name, and if you like its
+address, phone number and distance. The app gives the clinic a **6-digit access code**.
+Share this code with the clinic: their staff need it to open their clinic view. Tap
+**New code** to make a different one.
 
-The referral status belongs to the patient, not to one screening, so every screening of
-that patient shows the same status. It also appears under the patient's name in History.
+Tap a clinic to edit it, see its code, or remove it. A clinic that already has referrals
+can't be removed.
 
-## 6. Reviewing past screenings
+### Referring a patient
+
+1. On the recommended steps for a flagged patient, tap **Refer to a clinic**. For a
+   screening that is already saved, open it from History and tap **Refer to a clinic**.
+2. Choose the clinic. You can add a new one from here with **Add clinic**.
+3. Optionally write a note for the clinic, for example how long the patient has had
+   symptoms or whether they need help with transport.
+4. Tap **Save & send referral** (or **Send referral**). The clinic sees the patient in its
+   clinic view straight away.
+
+### Following up
+
+Open the patient's screening from History, or the **Referrals sent** list on the Clinics
+tab. The referral card shows the clinic and a **Referred → Attended → Treated** tracker.
+When the clinic updates the patient, the tracker moves on its own, and any note from the
+clinic appears underneath. If the clinic isn't using the app, you can tap a step yourself
+to record it.
+
+The status also shows under the patient's name in History. It belongs to the patient, so
+every screening of that patient shows the same status.
+
+## 6. For clinic staff: the clinic view
+
+1. Install the app (see [section 1](#1-installing-the-app)).
+2. On the welcome screen, tap **Clinic staff? Open clinic view**. (A health worker can also
+   find **Open clinic view** on the Profile tab.)
+3. Choose your clinic, enter the 6-digit access code the health worker gave you, and tap
+   **Open clinic view**. The phone stays signed in to your clinic until you tap
+   **Sign out**.
+
+The clinic view shows how many patients are **Waiting**, **Attended** and **Treated**, and
+lists them. New referrals appear automatically; pull down to refresh. Tap a patient to see
+their screening result, eye photo, patient ID, who referred them and the health worker's
+note. Then:
+
+- Tap **Mark as attended** when the patient arrives, and **Mark as treated** after
+  treatment. You can also tap a step on the tracker to correct it.
+- Write in **Clinic notes** and tap **Save note**, for example the confirmed diagnosis or
+  a surgery date. The health worker sees the note.
+
+## 7. Reviewing past screenings
 
 Open the **History** tab and tap any screening to see its full result again, including the
 photo. Tap **Back to history** to return. Past screenings cannot be edited or deleted from
 the app.
 
-## 7. Profile and settings
+## 8. Profile and settings
 
 The Profile tab shows your name, region and screening totals. **Notifications** can be
 turned on or off, and **About the AI model** shows the model version. Language, Sync data,
-Help & support and Log out are not active yet.
+Help & support and Log out are not active yet. **Open clinic view** switches this phone to
+the clinic view.
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 | Problem | What to do |
 | --- | --- |
 | "Camera access was denied" | Open phone **Settings → Apps → Cataract Screening → Permissions** and allow Camera, then reopen the app. |
-| History or clinics are empty | Check the phone's internet connection, then close and reopen the app. |
+| History or clinics are empty, or a red "Couldn't reach the server" banner shows | Check the phone's internet connection, then pull down on the screen or tap **Retry**. |
+| "That code doesn't match this clinic" | Check you picked the right clinic. Ask the health worker for the code; they can see it by tapping the clinic on their Clinics tab. |
 | A screening didn't appear in History | It is only saved after **Finish & save to history**. Check the internet connection and screen again. |
 | Android won't install the APK | Allow installs from unknown sources for the app you opened the file with. If an older copy was signed differently, uninstall it first. |

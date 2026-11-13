@@ -39,10 +39,43 @@ export interface ScanRow {
 export interface ClinicRow {
   id: string;
   name: string;
-  distance: string;
-  address: string;
-  phone: string;
+  distance: string | null;
+  address: string | null;
+  phone: string | null;
+  access_code: string;
   booked_at: string | null;
+  created_at: string;
+}
+
+export type ClinicInput = Pick<ClinicRow, 'name' | 'address' | 'phone' | 'distance' | 'access_code'>;
+
+export interface ReferralRow {
+  id: string;
+  patient_id: string;
+  scan_id: string | null;
+  clinic_id: string;
+  status: ReferralStatus;
+  worker_name: string;
+  worker_note: string | null;
+  clinic_note: string | null;
+  created_at: string;
+  updated_at: string;
+  patient: PatientRow | null;
+  scan: Omit<ScanRow, 'patient'> | null;
+  clinic: Pick<ClinicRow, 'id' | 'name'> | null;
+}
+
+/** Index of a status along the referred → attended → treated path (-1 if not referred). */
+export function referralStep(status: ReferralStatus | null): number {
+  return REFERRAL_STATUSES.findIndex(s => s.value === status);
+}
+
+export function nextReferralStatus(status: ReferralStatus): ReferralStatus | null {
+  return REFERRAL_STATUSES[referralStep(status) + 1]?.value ?? null;
+}
+
+export function randomAccessCode(): string {
+  return String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
 }
 
 export interface WorkerSettingsRow {

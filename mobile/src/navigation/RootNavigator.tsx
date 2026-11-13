@@ -9,12 +9,20 @@ import ScanningScreen from '../screens/ScanningScreen';
 import DisclaimerScreen from '../screens/DisclaimerScreen';
 import ResultScreen from '../screens/ResultScreen';
 import RecommendScreen from '../screens/RecommendScreen';
+import ClinicFormScreen from '../screens/ClinicFormScreen';
+import ReferScreen from '../screens/ReferScreen';
+import ClinicSignInScreen from '../screens/ClinicSignInScreen';
+import ClinicHomeScreen from '../screens/ClinicHomeScreen';
+import ClinicReferralScreen from '../screens/ClinicReferralScreen';
+import { useScreening } from '../state/ScreeningContext';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
+  // A phone signed in as a clinic opens straight into the clinic view.
+  const { session } = useScreening();
   return (
-    <Stack.Navigator initialRouteName="Onboarding" screenOptions={{ headerShown: false }}>
+    <Stack.Navigator initialRouteName={session.role === 'clinic' ? 'ClinicHome' : 'Onboarding'} screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="Main" component={MainScreen} />
       <Stack.Screen name="PatientInfo" component={PatientInfoScreen} />
@@ -23,6 +31,11 @@ export default function RootNavigator() {
       <Stack.Screen name="Disclaimer" component={DisclaimerScreen} />
       <Stack.Screen name="Result" component={ResultScreen} />
       <Stack.Screen name="Recommend" component={RecommendScreen} />
+      <Stack.Screen name="ClinicForm" component={ClinicFormScreen} />
+      <Stack.Screen name="Refer" component={ReferScreen} />
+      <Stack.Screen name="ClinicSignIn" component={ClinicSignInScreen} />
+      <Stack.Screen name="ClinicHome" component={ClinicHomeScreen} />
+      <Stack.Screen name="ClinicReferral" component={ClinicReferralScreen} />
     </Stack.Navigator>
   );
 }

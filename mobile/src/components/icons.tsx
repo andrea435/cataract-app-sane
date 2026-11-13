@@ -71,3 +71,44 @@ export function TabProfileIcon({ size = 21, color }: { size?: number; color: str
     </Svg>
   );
 }
+
+export function PlusIcon({ size = 16, color = '#fff' }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 5v14M5 12h14" stroke={color} strokeWidth={2.2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+export function CheckIcon({ size = 14, color = '#fff' }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M5 12.5l4.5 4.5L19 7.5" stroke={color} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function ChevronRightIcon({ size = 16, color = '#6b7378' }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M9 5l7 7-7 7" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function SendIcon({ size = 18, color = '#fff' }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M4 12l16-8-6 16-2.5-6.5L4 12Z" stroke={color} strokeWidth={1.7} strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function HospitalIcon({ size = 22, color = '#006386' }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect x={4} y={4} width={16} height={17} rx={2.5} stroke={color} strokeWidth={1.7} />
+      <Path d="M12 8.5v6M9 11.5h6" stroke={color} strokeWidth={1.8} strokeLinecap="round" />
+    </Svg>
+  );
+}

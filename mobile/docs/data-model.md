@@ -83,6 +83,7 @@ Referral clinics. Health workers add, edit and remove them on the Clinics tab.
 | `address`, `phone` | text, nullable | |
 | `distance` | text, nullable | Display string such as `2.4 km`, typed by the worker; not computed from location |
 | `booked_at` | timestamptz, nullable | Legacy, from the old "Refer patient" button; no longer written |
+| `access_code` | text, nullable | Legacy, from the short-lived 6-digit clinic code; no longer used |
 | `created_at` | timestamptz | |
 
 A clinic that still has referrals can't be deleted (`on delete restrict`); the app says so.

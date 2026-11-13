@@ -69,21 +69,16 @@ alter table public.referrals add column worker_id uuid references auth.users (id
 
 -- 3. Replace the open policies ----------------------------------------------------------
 
-drop policy "anon full access" on public.scans;
-drop policy "anon full access" on public.patients;
-drop policy "anon full access" on public.clinics;
-drop policy "anon full access" on public.referrals;
-drop policy "anon full access" on public.worker_settings;
-
--- Health workers: full access, as before, but only when signed in.
-create policy "workers full access" on public.scans
-  for all to authenticated using (public.is_worker()) with check (public.is_worker());
-create policy "workers full access" on public.patients
-  for all to authenticated using (public.is_worker()) with check (public.is_worker());
-create policy "workers full access" on public.clinics
-  for all to authenticated using (public.is_worker()) with check (public.is_worker());
-create policy "workers full access" on public.referrals
-  for all to authenticated using (public.is_worker()) with check (public.is_worker());
+-- Health workers: full access, as before, but only when signed in. (The old open policies
+-- are altered in place rather than dropped and recreated.)
+alter policy "anon full access" on public.scans to authenticated using (public.is_worker()) with check (public.is_worker());
+alter policy "anon full access" on public.patients to authenticated using (public.is_worker()) with check (public.is_worker());
+alter policy "anon full access" on public.clinics to authenticated using (public.is_worker()) with check (public.is_worker());
+alter policy "anon full access" on public.referrals to authenticated using (public.is_worker()) with check (public.is_worker());
+alter policy "anon full access" on public.scans rename to "workers full access";
+alter policy "anon full access" on public.patients rename to "workers full access";
+alter policy "anon full access" on public.clinics rename to "workers full access";
+alter policy "anon full access" on public.referrals rename to "workers full access";
 
 -- Clinic staff: their own clinic and its referrals.
 create policy "clinic staff read own clinic" on public.clinics
@@ -128,23 +123,31 @@ create trigger referrals_guard_clinic_update
 alter function public.referrals_sync_patient() security definer;
 
 -- Shared settings (AI model version): readable by anyone signed in, editable by workers.
-create policy "signed-in users read settings" on public.worker_settings
-  for select to authenticated using (true);
-create policy "workers update settings" on public.worker_settings
-  for update to authenticated using (public.is_worker()) with check (public.is_worker());
+alter policy "anon full access" on public.worker_settings to authenticated using (true) with check (public.is_worker());
+alter policy "anon full access" on public.worker_settings rename to "signed-in read, workers edit";
+create policy "only workers change settings" on public.worker_settings
+  as restrictive for update to authenticated using (public.is_worker());
+create policy "only workers remove settings" on public.worker_settings
+  as restrictive for delete to authenticated using (public.is_worker());
 
--- 4. The shared 6-digit clinic code is replaced by individual clinic staff logins.
-alter table public.clinics drop column access_code;
+-- 4. The shared 6-digit clinic code is replaced by individual clinic staff logins. The
+-- column is kept (no longer used by the app) but no longer required.
+alter table public.clinics alter column access_code drop not null, alter column access_code drop default;
 
 -- 5. Eye photos become private ----------------------------------------------------------
 
 update storage.buckets set public = false where id = 'eye-captures';
 
-drop policy "anon write eye-captures" on storage.objects;
-drop policy "anon read eye-captures" on storage.objects;
-
-create policy "workers manage eye photos" on storage.objects
-  for all to authenticated
+-- The old open read/write policies now only apply to signed-in health workers.
+alter policy "anon read eye-captures" on storage.objects to authenticated
+  using (bucket_id = 'eye-captures' and public.is_worker());
+alter policy "anon write eye-captures" on storage.objects to authenticated
+  with check (bucket_id = 'eye-captures' and public.is_worker());
+alter policy "anon read eye-captures" on storage.objects rename to "workers read eye photos";
+alter policy "anon write eye-captures" on storage.objects rename to "workers upload eye photos";
+-- Re-uploading a photo (upsert) also needs update.
+create policy "workers replace eye photos" on storage.objects
+  for update to authenticated
   using (bucket_id = 'eye-captures' and public.is_worker())
   with check (bucket_id = 'eye-captures' and public.is_worker());
 

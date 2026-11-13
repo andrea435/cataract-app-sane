@@ -262,6 +262,12 @@ time you sign in. **Sync data** shows how many screenings and referrals are wait
 date" when none are); tap it to upload them now. **Log out** signs you out of this phone.
 Language and Help & support are not active yet.
 
+**Reports** shows the whole team's numbers for the last 7, 30 or 90 days, or all time:
+screenings, patients flagged, referred, attended and treated, the treatment rate (treated
+out of referred), and the same broken down by clinic and by health worker. Tap **Share** to
+send it as text by WhatsApp, SMS or email. Screenings and referrals are counted on the day
+they were made; attended and treated show where those referrals are now.
+
 **Health workers** lists everyone on your team. Admins (shown with an **Admin** tag) can
 tap **Add** to create a login for a new health worker, in the same way as a clinic login,
 and **Remove** someone who has left. Their past screenings are kept.

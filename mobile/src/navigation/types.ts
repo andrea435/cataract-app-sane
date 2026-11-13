@@ -22,6 +22,8 @@ export type RootStackParamList = {
   Refer: { scanId?: string } | undefined;
   // Referred patients not attended after the reminder period.
   FollowUps: undefined;
+  // Screenings, referrals and treatment by clinic and worker.
+  Reports: undefined;
   // Health workers on the team (admins can add and remove them).
   Team: undefined;
   // Create a login: another health worker, or staff of one clinic.

@@ -18,6 +18,8 @@ export type Result<T = void> = { ok: true; value: T } | { ok: false; error: stri
 
 const NETWORK_ERROR = "Couldn't reach the server. Check your connection and try again.";
 
+export type ReferralPatch = { status?: ReferralStatus; clinic_note?: string | null; followed_up_at?: string | null };
+
 export type NewAccount = { full_name: string; email: string; password: string };
 
 /** Offline mode: what is still waiting on this phone to upload. */
@@ -95,7 +97,9 @@ interface ScreeningContextValue {
   latestReferralFor: (patientId: string | null | undefined) => ReferralRow | undefined;
   /** Sends a referral, or keeps it on the phone to send when there is signal (`queued`). */
   sendReferral: (args: { scan: ScanRow; clinicId: string; note: string; shareConsentAt: string | null }) => Promise<Result<{ row: ReferralRow; queued: boolean }>>;
-  updateReferral: (id: string, patch: { status?: ReferralStatus; clinic_note?: string | null }) => Promise<Result>;
+  updateReferral: (id: string, patch: ReferralPatch) => Promise<Result>;
+  /** Health workers: how many days before a patient who hasn't attended is flagged. */
+  setFollowUpDays: (days: number) => Promise<Result>;
 
   activeTab: TabKey;
   setActiveTab: (t: TabKey) => void;
@@ -335,8 +339,13 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
     try {
       if (profile.role === 'clinic') {
         // Clinic staff only ever see their own clinic and its referrals (enforced by the database).
-        const [clinicsRes, referralsOk] = await Promise.all([supabase.from('clinics').select('*'), loadReferrals()]);
+        const [clinicsRes, settingsRes, referralsOk] = await Promise.all([
+          supabase.from('clinics').select('*'),
+          supabase.from('worker_settings').select('*').eq('id', 1).maybeSingle(),
+          loadReferrals(),
+        ]);
         if (clinicsRes.data) setClinics(clinicsRes.data as ClinicRow[]);
+        if (settingsRes.data) setSettings(settingsRes.data as WorkerSettingsRow);
         setLoadError(!!clinicsRes.error || !referralsOk);
         return;
       }
@@ -619,7 +628,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
   );
 
   const updateReferral = useCallback(
-    async (id: string, patch: { status?: ReferralStatus; clinic_note?: string | null }): Promise<Result> => {
+    async (id: string, patch: ReferralPatch): Promise<Result> => {
       const before = referrals.find(r => r.id === id);
       setReferrals(prev => prev.map(r => (r.id === id ? { ...r, ...patch, updated_at: new Date().toISOString() } : r)));
       if (before && patch.status) syncPatientStatus(before.patient_id, patch.status);
@@ -635,6 +644,20 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
       return { ok: true, value: undefined };
     },
     [referrals, syncPatientStatus]
+  );
+
+  const setFollowUpDays = useCallback(
+    async (days: number): Promise<Result> => {
+      const before = settings;
+      if (before) setSettings({ ...before, follow_up_days: days });
+      const { error } = await supabase.from('worker_settings').update({ follow_up_days: days }).eq('id', 1);
+      if (error) {
+        setSettings(before);
+        return { ok: false, error: NETWORK_ERROR };
+      }
+      return { ok: true, value: undefined };
+    },
+    [settings]
   );
 
   // ---------------------------------------------------------------- screening draft
@@ -728,7 +751,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
       history: shownHistory, clinics, referrals: shownReferrals, settings, loading, loadError, refreshAll, toggleNotifications, photoUrlFor,
       sync, syncNow,
       addClinic, updateClinic, deleteClinic,
-      latestReferralFor, sendReferral, updateReferral,
+      latestReferralFor, sendReferral, updateReferral, setFollowUpDays,
       activeTab, setActiveTab,
       patientName, setPatientName, patientId, setPatientId, eye, setEye,
       consent, setConsent, disclaimerChecked, setDisclaimerChecked, capturedPhotoUri, setCapturedPhotoUri, resetDraft,
@@ -741,7 +764,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
       shownHistory, clinics, shownReferrals, settings, loading, loadError, refreshAll, toggleNotifications, photoUrlFor,
       sync, syncNow,
       addClinic, updateClinic, deleteClinic,
-      latestReferralFor, sendReferral, updateReferral,
+      latestReferralFor, sendReferral, updateReferral, setFollowUpDays,
       activeTab,
       patientName, patientId, eye, consent, disclaimerChecked, capturedPhotoUri, resetDraft,
       currentResult, viewOnly, computeCurrentResult, viewHistoryItem,

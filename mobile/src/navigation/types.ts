@@ -20,6 +20,8 @@ export type RootStackParamList = {
   // Send a referral. With scanId, for a saved screening; without, for the screening in
   // progress (it is saved first).
   Refer: { scanId?: string } | undefined;
+  // Referred patients not attended after the reminder period.
+  FollowUps: undefined;
   // Health workers on the team (admins can add and remove them).
   Team: undefined;
   // Create a login: another health worker, or staff of one clinic.

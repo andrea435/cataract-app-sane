@@ -212,6 +212,22 @@ to record it.
 The status also shows under the patient's name in History. It belongs to the patient, so
 every screening of that patient shows the same status.
 
+### Follow-up reminders
+
+If the clinic hasn't marked a referred patient as attended after 14 days, the app flags
+them. A red **follow-ups due** card appears on the Scan tab, and the referral shows
+**Follow up** in **Referrals sent**. Tap the card to see the list, longest waiting first.
+For each patient:
+
+- **Call clinic** phones the clinic (when a phone number is saved for it).
+- **Followed up**: you contacted the patient or clinic. The patient comes off the list and
+  is flagged again if they still haven't attended after another 14 days.
+- **Attended**: the patient did reach the clinic but the clinic hasn't updated the app.
+
+**Remind me after** at the top changes the number of days (7, 14, 21 or 30) for the whole
+team. It can also be reached from Profile → **Follow-up reminders**. Clinic staff see
+"Waiting N days" in red on patients who are overdue.
+
 ## 6. For clinic staff: the clinic view
 
 1. Install the app (see [section 1](#1-installing-the-app)).

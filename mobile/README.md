@@ -62,6 +62,7 @@ Main (tabs: Scan · History · Clinics · Profile)
 History item ─► Result (view only, referral tracker or "Refer to a clinic" ─► Refer)
 Clinics tab ─► ClinicForm (add / edit / remove, clinic logins) ─► AddAccount
 Profile ─► Team (health workers) ─► AddAccount
+Scan tab "follow-ups due" / Profile ─► FollowUps
 Consent / Profile / ClinicHome ─► PrivacyNotice
 
 Signed out
@@ -143,6 +144,10 @@ the group, so nobody can navigate into the other role's screens.
   return `{ ok, error }` so screens can show a message instead of failing silently.
   `sendReferral()` also goes through the outbox and reports `queued` when it is waiting.
   A database trigger mirrors the latest referral's status onto `patients.referral_status`.
+
+Follow-up reminders: `src/data/followUp.ts` decides which referrals are due
+(`status = referred` and `follow_up_days` since `created_at` or `followed_up_at`);
+`setFollowUpDays()` changes the team-wide setting.
 
 Result classification is in `statusFields()` (`src/data/types.ts`): `< 50%` clear,
 `50–64` Mild, `65–79` Moderate, `80+` Severe. Text content (onboarding, recommended

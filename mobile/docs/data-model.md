@@ -108,19 +108,22 @@ One row per patient sent to a clinic. The clinic view lists the rows for its cli
 | `worker_id` | uuid, FK → `auth.users.id`, nullable | Defaults to the signed-in user |
 | `worker_note` | text, nullable | Note for the clinic, written when referring |
 | `clinic_note` | text, nullable | Written by clinic staff; shown to the health worker |
+| `followed_up_at` | timestamptz, nullable | Last time a health worker tapped **Followed up** for a patient who hadn't attended; restarts the reminder count |
 | `share_consent_at` | timestamptz, nullable | When the patient agreed to share their result with the clinic (at screening, or asked again when referring). The app won't send a referral without it |
 | `created_at`, `updated_at` | timestamptz | `updated_at` is set by a trigger on every update |
 
 Triggers: `referrals_touch` keeps `updated_at` fresh; `referrals_sync_patient` (security
 definer) copies the status of the patient's newest referral to `patients.referral_status`;
 `referrals_guard_clinic_update` stops clinic staff changing anything but `status` and
-`clinic_note` (including `share_consent_at`). The table is in the
+`clinic_note` (including `share_consent_at` and `followed_up_at`). The table is in the
 `supabase_realtime` publication so both sides of the app see changes live.
 
 ### `worker_settings`
 
-A single row (`id = 1`, enforced by a check). The app now reads only `ai_model_version`
-from it; the worker name, region and notification setting moved to `profiles`.
+A single row (`id = 1`, enforced by a check). The app reads `ai_model_version` and
+`follow_up_days` (integer, default 14, 1 to 365: days before a referral still at `referred`
+is flagged for follow-up, counted from `created_at` or `followed_up_at`; changed on the
+Follow-ups screen). The worker name, region and notification setting moved to `profiles`.
 
 ## Storage
 
@@ -199,8 +202,9 @@ Deploy changes with `supabase functions deploy manage-accounts`.
 `supabase/migrations/` holds the `patients` migration
 (`20261026062000_create_patients.sql`), the clinics and referrals migration
 (`20261113080000_clinics_and_referrals.sql`) and the accounts and access rules migration
-(`20261113100000_accounts_and_access_rules.sql`) and the consent columns
-(`20261113150000_patient_consent.sql`). The photo policies are in
+(`20261113100000_accounts_and_access_rules.sql`) the consent columns
+(`20261113150000_patient_consent.sql`) and follow-up reminders
+(`20261113160000_follow_up_reminders.sql`). The photo policies are in
 `20261113100500_eye_photo_policies.sql`, which must be run from the Supabase dashboard's
 SQL editor because only the storage owner can change policies on `storage.objects`. The earlier tables (`scans`, `clinics`,
 `worker_settings`) and the storage bucket were created directly in the Supabase project and

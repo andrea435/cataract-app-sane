@@ -3,7 +3,7 @@ import { AppState } from 'react-native';
 import { isAuthRetryableFetchError, type Session } from '@supabase/supabase-js';
 import { supabase, EYE_CAPTURES_BUCKET, PHOTO_URL_TTL_SECONDS, manageAccounts, storedSessionUserId, forgetStoredSession } from '../lib/supabase';
 import { keepPhoto, newId, readJson, writeJson } from '../lib/localStore';
-import { ensureAlertPermission, showAlert } from '../lib/alerts';
+import { devicePushToken, ensureAlertPermission, forgetPush, shouldAlertLocally, showAlert } from '../lib/alerts';
 import { Job, REFERRAL_SELECT, ReferralJob, SCAN_SELECT, ScanJob, isConnectionError, pendingReferralRow, pendingScanRow, uploadReferral, uploadScan } from './outbox';
 import { colors } from '../theme/colors';
 import { CONSENT_VERSION } from '../data/content';
@@ -47,6 +47,11 @@ interface CachedData {
   settings: WorkerSettingsRow | null;
   accounts: ProfileRow[];
   savedAt: string;
+}
+
+/** Asks the server to send lock-screen push alerts about a referral (best effort). */
+function notifyReferral(referralId: string, event: 'created' | 'updated') {
+  supabase.functions.invoke('notify-referral', { body: { referral_id: referralId, event } }).catch(() => undefined);
 }
 
 const cacheKey = (userId: string) => `cache-${userId}`;
@@ -173,6 +178,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
   const referralsRef = useRef<ReferralRow[]>([]);
   const profileRef = useRef<ProfileRow | null>(null);
   const alertBaseline = useRef(false);
+  const pushToken = useRef<string | null>(null);
   const syncPromise = useRef<Promise<void> | null>(null);
   historyRef.current = history;
   referralsRef.current = referrals;
@@ -274,6 +280,12 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    // Stop pushes for this account reaching this phone.
+    if (pushToken.current) {
+      await supabase.from('push_tokens').delete().eq('token', pushToken.current);
+      pushToken.current = null;
+    }
+    forgetPush();
     const { error } = await supabase.auth.signOut();
     if (error) {
       // No signal: forget the sign-in on this phone anyway. Anything still waiting to
@@ -331,7 +343,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
   // for the first time doesn't announce everything.
   const announceChanges = useCallback((before: ReferralRow[], after: ReferralRow[]) => {
     const me = profileRef.current;
-    if (!me || !me.notifications_enabled) return;
+    if (!me || !me.notifications_enabled || !shouldAlertLocally()) return;
     const old = new Map(before.map(r => [r.id, r]));
     if (me.role === 'clinic') {
       const fresh = after.filter(r => !old.has(r.id) && r.clinic_id === me.clinic_id && r.status === 'referred');
@@ -418,10 +430,18 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
     }
   }, [profile, loadReferrals, signPhotos]);
 
-  // Ask once for permission to show referral alerts, if they are switched on.
+  // Ask once for permission to show referral alerts, if they are switched on, and register
+  // this phone for lock-screen push when the build has Firebase set up.
   useEffect(() => {
-    if (profile?.notifications_enabled) ensureAlertPermission();
-  }, [profile?.id, profile?.notifications_enabled]);
+    if (!profile?.notifications_enabled || !authSession) return;
+    (async () => {
+      if (!(await ensureAlertPermission())) return;
+      const token = await devicePushToken();
+      if (!token) return;
+      pushToken.current = token;
+      await supabase.from('push_tokens').upsert({ token, user_id: profile.id, platform: 'android', updated_at: new Date().toISOString() }, { onConflict: 'token' });
+    })();
+  }, [profile?.id, profile?.notifications_enabled, authSession]);
 
   useEffect(() => {
     if (profile) refreshAll();
@@ -514,6 +534,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
           }
           saveOutbox(outboxRef.current.filter(j => j.id !== job.id));
           setReferrals(prev => [res.row, ...prev.filter(r => r.id !== res.row.id)]);
+          notifyReferral(res.row.id, 'created');
           syncPatientStatusRef.current(res.row.patient_id, res.row.status);
         }
       }
@@ -682,6 +703,8 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
       setReferrals(prev => prev.map(r => (r.id === id ? { ...r, ...patch, updated_at: new Date().toISOString() } : r)));
       if (before && patch.status) syncPatientStatus(before.patient_id, patch.status);
       const { error } = await supabase.from('referrals').update(patch).eq('id', id);
+      // Lock-screen alert for the health worker when the clinic moves their patient on.
+      if (!error && profile?.role === 'clinic' && (patch.status || patch.clinic_note !== undefined)) notifyReferral(id, 'updated');
       if (error) {
         // Roll back the optimistic change so the screen shows what is really stored.
         if (before) {
@@ -692,7 +715,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
       }
       return { ok: true, value: undefined };
     },
-    [referrals, syncPatientStatus]
+    [referrals, syncPatientStatus, profile?.role]
   );
 
   const setFollowUpDays = useCallback(

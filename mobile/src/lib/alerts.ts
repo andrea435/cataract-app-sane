@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { createNavigationContainerRef } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
@@ -13,11 +13,26 @@ const supported = Platform.OS === 'android' || Platform.OS === 'ios';
 
 export type AlertData = { referralId: string };
 
+// True once this phone is registered for lock-screen push. The app then only shows its own
+// alerts while it is in front, and leaves the rest to push, so nothing shows twice.
+let pushActive = false;
+export const isPushActive = () => pushActive;
+
+/** Whether the app should raise its own alert for a change it just noticed. */
+export function shouldAlertLocally(): boolean {
+  return !pushActive || AppState.currentState === 'active';
+}
+
 /** Call once at start-up: show alerts even while the app is open. */
 export function setupAlerts(): void {
   if (!supported) return;
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: true, shouldSetBadge: false }),
+    // A push arriving while the app is open is already shown by the app's own alert.
+    handleNotification: async n => {
+      const trigger = n.request.trigger as { type?: string } | null;
+      const show = trigger?.type !== 'push';
+      return { shouldShowBanner: show, shouldShowList: show, shouldPlaySound: show, shouldSetBadge: false };
+    },
   });
   if (Platform.OS === 'android') {
     Notifications.setNotificationChannelAsync(ALERT_CHANNEL, {
@@ -51,6 +66,26 @@ export async function showAlert(title: string, body: string, data: AlertData): P
   } catch {
     // Notifications switched off in the phone's settings: nothing to show.
   }
+}
+
+/**
+ * This phone's Firebase push token, or null when push isn't available (Firebase not set up
+ * in this build, iPhone, web, or notifications not allowed).
+ */
+export async function devicePushToken(): Promise<string | null> {
+  if (Platform.OS !== 'android') return null;
+  try {
+    const t = await Notifications.getDevicePushTokenAsync();
+    pushActive = typeof t.data === 'string' && t.data.length > 0;
+    return pushActive ? (t.data as string) : null;
+  } catch {
+    pushActive = false;
+    return null;
+  }
+}
+
+export function forgetPush(): void {
+  pushActive = false;
 }
 
 /** Opens the referral behind a tapped alert. */

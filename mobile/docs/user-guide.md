@@ -220,8 +220,10 @@ The phone shows a notification (allow notifications when the app asks):
 - **Health workers:** when a clinic marks one of your referrals **attended** or
   **treated**, or adds a note.
 
-Tap the notification to open that patient. Alerts arrive while the app is open or was used
-recently; they are checked again whenever you open it, so nothing is missed. Turn them off
+Tap the notification to open that patient. Once your programme has set up push alerts
+([push-alerts.md](push-alerts.md)) they arrive on the lock screen even when the app is
+closed. Until then they arrive while the app is open or was used recently, and are
+checked again whenever you open it, so nothing is missed. Turn them off
 with **Notifications** on the Profile tab.
 
 ### Follow-up reminders

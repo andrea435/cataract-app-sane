@@ -152,8 +152,12 @@ referrals load (realtime change, refresh, launch) is compared with what was ther
 (`announceChanges` in the context): clinic staff get "New referral", health workers get
 "attended / treated / note" for referrals they sent (`worker_id`). Changes made on the
 same phone don't alert, and the very first load after sign-in sets the baseline. Tapping
-an alert opens the referral (`navigationRef`). These are local notifications, so they
-need the app to be running or recently used.
+an alert opens the referral (`navigationRef`). When the build includes
+Firebase (`google-services.json`, picked up by `app.config.js`), the phone also registers
+its FCM token in `push_tokens` and the app calls the `notify-referral` Edge Function after
+sending a referral or, for clinic staff, changing one. Pushes then reach closed apps, and
+local alerts are only raised while the app is in front so nothing shows twice. Setup:
+[docs/push-alerts.md](docs/push-alerts.md).
 
 Reports: `src/data/reports.ts` (`buildReport()`, `reportText()` for Share) computes
 everything on the phone from the loaded `history` and `referrals`, so it needs no extra

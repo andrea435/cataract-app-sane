@@ -13,6 +13,8 @@ patients 1 ──── * scans
                                          worker_settings (single row)
 storage bucket: eye-captures (private)   (<scan id>.jpg)
 edge function:  manage-accounts          (creates / removes logins)
+edge function:  notify-referral          (lock-screen push alerts via FCM)
+push_tokens * ── 1 auth.users            (one row per phone allowing alerts)
 ```
 
 ### `profiles`
@@ -118,6 +120,21 @@ definer) copies the status of the patient's newest referral to `patients.referra
 `clinic_note` (including `share_consent_at` and `followed_up_at`). The table is in the
 `supabase_realtime` publication so both sides of the app see changes live.
 
+### `push_tokens`
+
+One row per phone registered for lock-screen push alerts (see
+[push-alerts.md](push-alerts.md)).
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `token` | text, PK | Firebase Cloud Messaging token of the phone |
+| `user_id` | uuid, FK → `auth.users.id` | Defaults to the signed-in user; `on delete cascade` |
+| `platform` | text | `android` (`ios` reserved) |
+| `updated_at` | timestamptz | Last registration |
+
+RLS: people can read and write only their own rows. The `notify-referral` Edge Function
+reads recipients' tokens with the service role, and deletes tokens FCM reports as gone.
+
 ### `worker_settings`
 
 A single row (`id = 1`, enforced by a check). The app reads `ai_model_version` and
@@ -197,14 +214,23 @@ people then change their own with **Change password** (`supabase.auth.updateUser
 no forgotten-password reset yet: remove the login and create a new one.
 Deploy changes with `supabase functions deploy manage-accounts`.
 
+### `notify-referral` Edge Function
+
+`POST { referral_id, event }`, called by the app after a referral is sent (`created`, to
+the clinic's staff) and after clinic staff change its status or note (`updated`, to the
+health worker in `worker_id`). It checks the caller may see the referral, skips people with
+`notifications_enabled = false`, and sends through FCM HTTP v1 using the
+`FCM_SERVICE_ACCOUNT` secret. Without that secret it returns `{ sent: 0 }`.
+
 ## Migrations
 
 `supabase/migrations/` holds the `patients` migration
 (`20261026062000_create_patients.sql`), the clinics and referrals migration
 (`20261113080000_clinics_and_referrals.sql`) and the accounts and access rules migration
 (`20261113100000_accounts_and_access_rules.sql`) the consent columns
-(`20261113150000_patient_consent.sql`) and follow-up reminders
-(`20261113160000_follow_up_reminders.sql`). The photo policies are in
+(`20261113150000_patient_consent.sql`) follow-up reminders
+(`20261113160000_follow_up_reminders.sql`) and push tokens
+(`20261113170000_push_tokens.sql`). The photo policies are in
 `20261113100500_eye_photo_policies.sql`, which must be run from the Supabase dashboard's
 SQL editor because only the storage owner can change policies on `storage.objects`. The earlier tables (`scans`, `clinics`,
 `worker_settings`) and the storage bucket were created directly in the Supabase project and

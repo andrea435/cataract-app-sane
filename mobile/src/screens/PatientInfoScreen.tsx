@@ -49,7 +49,7 @@ export default function PatientInfoScreen({ navigation }: Props) {
       <TextInput
         value={patientName}
         onChangeText={setPatientName}
-        placeholder="e.g. Amara Njoku"
+        placeholder="e.g. Thandeka Moyo"
         placeholderTextColor={colors.textSubtle}
         style={styles.input}
       />

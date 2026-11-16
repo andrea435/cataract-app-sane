@@ -9,13 +9,16 @@ import { useScreening } from '../state/ScreeningContext';
 import { BackLink, PrimaryButton } from '../components/Buttons';
 import { CheckRow, Field } from '../components/ui';
 import { ShieldIcon } from '../components/icons';
-import { CONSENT_SUMMARY } from '../data/content';
+import { ConsentText, consentText, ENGLISH_CONSENT_TEXT, PATIENT_LANGUAGES, PatientLanguage, patientLanguage } from '../data/patientLanguages';
 import { ConsentBy } from '../data/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Consent'>;
 
 // Shown after the patient's details and before the eye photo. The health worker reads the
 // summary to the patient (or their parent or guardian) and records their answer.
+// The language the summary was last read in, kept for the next patient while the app is open.
+let lastLanguage: PatientLanguage = 'en';
+
 export default function ConsentScreen({ navigation }: Props) {
   const { patientName, consent, setConsent, resetDraft, setActiveTab } = useScreening();
   const name = patientName.trim() || 'The patient';
@@ -24,6 +27,14 @@ export default function ConsentScreen({ navigation }: Props) {
   const [guardianName, setGuardianName] = useState(consent?.guardianName ?? '');
   const [screening, setScreening] = useState(!!consent);
   const [share, setShare] = useState(consent?.share ?? false);
+  const [language, setLanguageState] = useState<PatientLanguage>(lastLanguage);
+  const setLanguage = (code: PatientLanguage) => {
+    lastLanguage = code;
+    setLanguageState(code);
+  };
+  const lang = patientLanguage(language);
+  const text: ConsentText = consentText(language);
+  const showEnglish = language !== 'en';
 
   const ready = screening && (by === 'patient' || !!guardianName.trim());
 
@@ -80,12 +91,46 @@ export default function ConsentScreen({ navigation }: Props) {
               </View>
               <Text style={styles.cardTitle}>How their information is used</Text>
             </View>
-            {CONSENT_SUMMARY.map(item => (
-              <View key={item.title} style={styles.summaryRow}>
+            <View>
+              <Text style={styles.langLabel}>Read it in</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.langRow}>
+                {PATIENT_LANGUAGES.map(l => {
+                  const selected = l.code === language;
+                  return (
+                    <Pressable
+                      key={l.code}
+                      onPress={() => setLanguage(l.code)}
+                      style={[styles.langChip, selected && styles.langChipSelected]}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: selected }}
+                    >
+                      <Text style={[styles.langChipText, selected && styles.langChipTextSelected]}>{l.name}</Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+              {!lang.checked && (
+                <Text style={styles.langNote}>
+                  {lang.text
+                    ? `Draft ${lang.name} wording, not yet checked by a first-language speaker. The English is under each line.`
+                    : `No ${lang.name} wording yet. Explain the English below in ${lang.name}.`}
+                </Text>
+              )}
+            </View>
+            {text.summary.map((item, i) => (
+              <View key={i} style={styles.summaryRow}>
                 <Text style={styles.summaryTitle}>{item.title}</Text>
                 <Text style={styles.summaryBody}>{item.body}</Text>
+                {showEnglish && lang.text && <Text style={styles.english}>{ENGLISH_CONSENT_TEXT.summary[i].body}</Text>}
               </View>
             ))}
+            <View style={styles.askBox}>
+              <Text style={styles.summaryTitle}>{showEnglish && lang.text ? 'Ask' : 'Then ask'}</Text>
+              <Text style={styles.summaryBody}>{text.screeningQuestion}</Text>
+              {showEnglish && lang.text && <Text style={styles.english}>{ENGLISH_CONSENT_TEXT.screeningQuestion}</Text>}
+              <Text style={[styles.summaryBody, { marginTop: 6 }]}>{text.shareQuestion}</Text>
+              {showEnglish && lang.text && <Text style={styles.english}>{ENGLISH_CONSENT_TEXT.shareQuestion}</Text>}
+            </View>
             <Pressable onPress={() => navigation.navigate('PrivacyNotice')} hitSlop={8} style={styles.noticeLink}>
               <Text style={styles.noticeLinkText}>Read the full privacy notice ›</Text>
             </Pressable>
@@ -98,7 +143,7 @@ export default function ConsentScreen({ navigation }: Props) {
           </View>
           {by === 'guardian' && (
             <View style={{ marginTop: 14 }}>
-              <Field label="Parent or guardian's name" value={guardianName} onChangeText={setGuardianName} placeholder="e.g. Grace Njoku" />
+              <Field label="Parent or guardian's name" value={guardianName} onChangeText={setGuardianName} placeholder="e.g. Nomsa Ncube" />
             </View>
           )}
 
@@ -140,6 +185,15 @@ const styles = StyleSheet.create({
   summaryRow: { gap: 2 },
   summaryTitle: { fontSize: 12, fontWeight: '700', color: colors.textLabelStrong },
   summaryBody: { fontSize: 13, lineHeight: 19, color: colors.textBody },
+  english: { fontSize: 11.5, lineHeight: 16, color: colors.textSubtle, fontStyle: 'italic', marginTop: 2 },
+  askBox: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border, paddingTop: 10, gap: 2 },
+  langLabel: { fontSize: 11.5, fontWeight: '700', color: colors.textLabelStrong, marginBottom: 6 },
+  langRow: { gap: 6 },
+  langChip: { paddingVertical: 6, paddingHorizontal: 11, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.cardBg },
+  langChipSelected: { borderColor: colors.brand, backgroundColor: colors.brandTint },
+  langChipText: { fontSize: 12.5, fontWeight: '600', color: colors.textBody },
+  langChipTextSelected: { color: colors.brandDark },
+  langNote: { fontSize: 11.5, lineHeight: 16, color: colors.textMuted, marginTop: 8 },
   noticeLink: { alignSelf: 'flex-start', paddingTop: 2 },
   noticeLinkText: { fontSize: 12.5, fontWeight: '700', color: colors.brand },
   label: { fontSize: 12.5, fontWeight: '600', color: colors.textLabelStrong, marginBottom: 6 },

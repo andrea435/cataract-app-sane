@@ -72,6 +72,13 @@ Tap **Continue to consent**. Before any photo is taken, read the box **How their
 information is used** to the patient in a language they understand. Tap **Read the full
 privacy notice** if they want more detail. The notice is also on the Profile tab.
 
+Under **Read it in**, pick the patient's language: English (the default), isiNdebele,
+chiShona, Setswana or TjiKalanga. The box then shows the summary and the two questions to
+ask in that language, with the English in small grey text under each line. The app
+remembers the last language you picked until it is closed. TjiKalanga wording isn't written
+yet, so for now it shows the English for you to explain. Only the patient's part changes
+language; the rest of the app stays in English.
+
 - **Consent given by:** choose **The patient**, or **Parent or guardian** for a child or an
   adult who can't decide for themselves, and type the guardian's name.
 - Tick **agrees to the screening** (required) once they say yes.

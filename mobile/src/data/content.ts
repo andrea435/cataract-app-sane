@@ -50,13 +50,7 @@ export const PRIVACY_CONTACT = {
   contact: 'your health worker or the programme coordinator',
 };
 
-/** Short version read to the patient on the consent screen. */
-export const CONSENT_SUMMARY = [
-  { title: 'What we collect', body: 'Your name, patient ID if you have one, a photo of the front of your eye and the screening result.' },
-  { title: 'Why', body: 'To check for signs of cataract and, if needed, to refer you to a clinic for treatment.' },
-  { title: 'Who sees it', body: 'The health workers in this programme, and only the clinic you are referred to if you agree.' },
-  { title: 'Your choice', body: 'Saying no does not affect your care. You can ask to see, correct or delete your information at any time.' },
-];
+// The short summary read to the patient, in each language, is in patientLanguages.ts.
 
 /** The full notice, shown from the consent screen and from Profile. */
 export const PRIVACY_NOTICE: { heading: string; paragraphs: string[] }[] = [

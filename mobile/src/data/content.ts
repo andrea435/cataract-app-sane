@@ -36,7 +36,7 @@ export const DISCLAIMER_PARAGRAPHS = [
   'Image quality, lighting, and patient cooperation can affect accuracy. Recapture the image if it is blurry or poorly lit.',
 ];
 
-// ---- Patient consent and privacy notice (POPIA-style) ----
+// ---- Patient consent and privacy notice (Zimbabwe Cyber and Data Protection Act) ----
 
 /** Recorded with each screening; change it whenever the notice text below changes. */
 export const CONSENT_VERSION = '2026-11-v1';
@@ -71,7 +71,7 @@ export const PRIVACY_NOTICE: { heading: string; paragraphs: string[] }[] = [
     paragraphs: [
       'Your name and, if you give one, a patient ID (for example from a clinic card). A photo of the front of your eye. The screening result and estimated severity. The date, which eye was screened, and the health worker who screened you.',
       'If you are referred: the clinic, any note from the health worker, and the clinic\'s updates on whether you attended and were treated.',
-      'This is health information, which the law treats as special personal information. We only collect it with your consent.',
+      'This is health information, which the law treats as sensitive data. We only collect it with your consent.',
     ],
   },
   {
@@ -100,7 +100,7 @@ export const PRIVACY_NOTICE: { heading: string; paragraphs: string[] }[] = [
     paragraphs: [
       'You can say no. Saying no does not affect your right to care: you can still go to a clinic for an eye examination.',
       'You can ask to see the information we hold about you, to correct it, or to delete it, and you can withdraw your consent at any time.',
-      'If you are unhappy with how your information is handled you can complain to the Information Regulator (South Africa), inforeg.org.za.',
+      'If you are unhappy with how your information is handled you can complain to the Data Protection Authority, POTRAZ (Postal and Telecommunications Regulatory Authority of Zimbabwe), potraz.gov.zw.',
     ],
   },
   {

@@ -1,4 +1,4 @@
--- Patient consent (POPIA-style), recorded with every screening and every referral.
+-- Patient consent (as required for health data by Zimbabwe's Cyber and Data Protection Act), recorded with every screening and every referral.
 --
 -- Before an eye photo is taken the health worker reads the privacy notice to the patient
 -- (or their parent or guardian) and records their answer in the app:

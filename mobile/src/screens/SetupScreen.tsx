@@ -46,8 +46,8 @@ export default function SetupScreen({ navigation }: Props) {
 
           {error && <Banner text={error} />}
 
-          <Field label="Your name" value={fullName} onChangeText={setFullName} placeholder="e.g. Naomi Achieng" autoCapitalize="words" />
-          <Field label="Region (optional)" value={region} onChangeText={setRegion} placeholder="e.g. Kisumu County" />
+          <Field label="Your name" value={fullName} onChangeText={setFullName} placeholder="e.g. Nomvula Sibanda" autoCapitalize="words" />
+          <Field label="Region (optional)" value={region} onChangeText={setRegion} placeholder="e.g. Gwanda, Matabeleland South" />
           <Field
             label="Email"
             value={email}

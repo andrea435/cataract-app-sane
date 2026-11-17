@@ -52,7 +52,7 @@ a:hover { color: oklch(45% 0.13 220); }
   <div style="font-size:20px; font-weight:700; margin-bottom:6px;">New Screening</div>
   <div style="font-size:13.5px; color:oklch(48% 0.012 235); margin-bottom:26px;">Enter patient details before capturing the eye image.</div>
   <label style="font-size:12.5px; font-weight:600; color:oklch(40% 0.012 235); margin-bottom:6px;">Patient name</label>
-  <input value="{{ patientName }}" onChange="{{ setPatientName }}" placeholder="e.g. Amara Njoku" style="padding:13px 14px; border-radius:10px; border:1px solid oklch(88% 0.008 235); font-size:14.5px; font-family:inherit; margin-bottom:18px; outline:none;"/>
+  <input value="{{ patientName }}" onChange="{{ setPatientName }}" placeholder="e.g. Thandeka Moyo" style="padding:13px 14px; border-radius:10px; border:1px solid oklch(88% 0.008 235); font-size:14.5px; font-family:inherit; margin-bottom:18px; outline:none;"/>
   <label style="font-size:12.5px; font-weight:600; color:oklch(40% 0.012 235); margin-bottom:6px;">Patient ID (optional)</label>
   <input value="{{ patientId }}" onChange="{{ setPatientId }}" placeholder="e.g. CHW-00214" style="padding:13px 14px; border-radius:10px; border:1px solid oklch(88% 0.008 235); font-size:14.5px; font-family:inherit; margin-bottom:18px; outline:none;"/>
   <label style="font-size:12.5px; font-weight:600; color:oklch(40% 0.012 235); margin-bottom:6px;">Eye being screened</label>
@@ -315,10 +315,10 @@ const ONBOARD_SLIDES = [
 ];
 
 const CLINIC_DATA = [
-  { id: "c1", name: "Riverside Eye Institute", distance: "2.1 km", address: "14 Riverside Rd", phone: "+254 700 112 233" },
-  { id: "c2", name: "St. Mary's Ophthalmology Unit", distance: "4.6 km", address: "St. Mary's Hospital, Block C", phone: "+254 700 998 112" },
-  { id: "c3", name: "Northgate Vision Center", distance: "7.8 km", address: "Northgate Plaza, 2nd Fl", phone: "+254 700 442 890" },
-  { id: "c4", name: "County Referral Hospital", distance: "11.3 km", address: "County Rd, Eye Dept", phone: "+254 700 221 004" },
+  { id: "c1", name: "Mpilo Central Hospital Eye Unit", distance: "2.1 km", address: "Vera Rd, Mzilikazi", phone: "+263 29 221 0001" },
+  { id: "c2", name: "United Bulawayo Hospitals Eye Clinic", distance: "4.6 km", address: "UBH, Block C", phone: "+263 29 225 0002" },
+  { id: "c3", name: "Nkulumane Clinic", distance: "7.8 km", address: "Nkulumane, Bulawayo", phone: "+263 29 248 0003" },
+  { id: "c4", name: "Tsholotsho District Hospital", distance: "11.3 km", address: "Tsholotsho, Eye Dept", phone: "+263 289 222 004" },
 ];
 
 function statusFields(probability) {
@@ -353,11 +353,11 @@ class Component extends DCLogic {
     bookedClinics: {},
     notifSetting: true,
     history: [
-      makeRecord("Grace Wanjiru", "Right eye", "Aug 24, 2026", 82),
-      makeRecord("Peter Otieno", "Left eye", "Aug 23, 2026", 34),
-      makeRecord("Fatuma Ali", "Left eye", "Aug 21, 2026", 91),
-      makeRecord("Samuel Kiptoo", "Right eye", "Aug 19, 2026", 22),
-      makeRecord("Jane Achieng", "Left eye", "Aug 17, 2026", 58),
+      makeRecord("Thandeka Moyo", "Right eye", "Aug 24, 2026", 82),
+      makeRecord("Sipho Ncube", "Left eye", "Aug 23, 2026", 34),
+      makeRecord("Sibongile Ndlovu", "Left eye", "Aug 21, 2026", 91),
+      makeRecord("Nkosana Dube", "Right eye", "Aug 19, 2026", 22),
+      makeRecord("Nomalanga Mpofu", "Left eye", "Aug 17, 2026", 58),
     ],
   };
 
@@ -509,7 +509,7 @@ class Component extends DCLogic {
       isMain: s.screen === "main",
       isTabScan: s.activeTab === "scan", isTabHistory: s.activeTab === "history",
       isTabClinics: s.activeTab === "clinics", isTabProfile: s.activeTab === "profile",
-      greeting: "Good afternoon", workerName: "Naomi Achieng", workerInitials: "NA", workerRegion: "Kisumu County",
+      greeting: "Good afternoon", workerName: "Nomvula Sibanda", workerInitials: "NS", workerRegion: "Bulawayo, Matabeleland",
       stats, recentHistory, historyList, clinics, tabs, settingsRows,
       startScreening: this.startScreening,
     };

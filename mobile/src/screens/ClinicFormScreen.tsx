@@ -103,12 +103,12 @@ export default function ClinicFormScreen({ navigation, route }: Props) {
             label="Clinic name"
             value={name}
             onChangeText={setName}
-            placeholder="e.g. Kisumu Eye Unit"
+            placeholder="e.g. Mpilo Eye Unit"
             error={touched && nameMissing ? 'Enter the clinic name.' : undefined}
             autoCapitalize="words"
           />
-          <Field label="Address (optional)" value={address} onChangeText={setAddress} placeholder="e.g. Oginga Odinga St, Kisumu" />
-          <Field label="Phone (optional)" value={phone} onChangeText={setPhone} placeholder="e.g. +254 57 202 0000" keyboardType="phone-pad" />
+          <Field label="Address (optional)" value={address} onChangeText={setAddress} placeholder="e.g. Vera Rd, Mzilikazi, Bulawayo" />
+          <Field label="Phone (optional)" value={phone} onChangeText={setPhone} placeholder="e.g. +263 29 221 0000" keyboardType="phone-pad" />
           <Field label="Distance (optional)" value={distance} onChangeText={setDistance} placeholder="e.g. 2.4 km" />
 
           {existing ? (

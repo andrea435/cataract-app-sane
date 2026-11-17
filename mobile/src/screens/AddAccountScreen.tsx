@@ -90,7 +90,7 @@ export default function AddAccountScreen({ navigation, route }: Props) {
 
           {error && <Banner text={error} />}
 
-          <Field label="Name" value={fullName} onChangeText={setFullName} placeholder={isWorker ? 'e.g. Joseph Otieno' : 'e.g. Dr. Akinyi Odhiambo'} autoCapitalize="words" />
+          <Field label="Name" value={fullName} onChangeText={setFullName} placeholder={isWorker ? 'e.g. Sipho Ncube' : 'e.g. Dr. Nokuthula Dube'} autoCapitalize="words" />
           <Field
             label="Email"
             value={email}
@@ -113,7 +113,7 @@ export default function AddAccountScreen({ navigation, route }: Props) {
 
           {isWorker && (
             <>
-              <Field label="Region (optional)" value={region} onChangeText={setRegion} placeholder="e.g. Kisumu County" />
+              <Field label="Region (optional)" value={region} onChangeText={setRegion} placeholder="e.g. Lupane, Matabeleland North" />
               <Pressable style={styles.toggleRow} onPress={() => setIsAdmin(v => !v)} accessibilityRole="switch" accessibilityState={{ checked: isAdmin }}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.toggleLabel}>Admin</Text>

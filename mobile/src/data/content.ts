@@ -41,13 +41,10 @@ export const DISCLAIMER_PARAGRAPHS = [
 /** Recorded with each screening; change it whenever the notice text below changes. */
 export const CONSENT_VERSION = '2026-11-v1';
 
-/**
- * Who runs the screening programme and how to reach them. Fill these in for your
- * programme before using the app with real patients.
- */
+/** Who runs the screening programme and how to reach them (shown in the privacy notice). */
 export const PRIVACY_CONTACT = {
-  organisation: 'the community eye screening programme',
-  contact: 'your health worker or the programme coordinator',
+  organisation: 'DreaLens',
+  contact: 'your health worker, or call DreaLens on +263 77 343 9962',
 };
 
 // The short summary read to the patient, in each language, is in patientLanguages.ts.

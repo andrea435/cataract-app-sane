@@ -118,7 +118,7 @@ the group, so nobody can navigate into the other role's screens.
   after each load.
 - The in-progress screening draft: patient name/ID, eye, `consent` (from the Consent
   screen), disclaimer tick, photo URI. Consent is stored on the scan; the privacy notice
-  text, `CONSENT_VERSION` and `PRIVACY_CONTACT` (fill in your programme's name and contact)
+  text, `CONSENT_VERSION` and `PRIVACY_CONTACT` (programme name and contact phone shown in the notice)
   are in `src/data/content.ts`. Bump `CONSENT_VERSION` whenever the notice changes.
 - `computeCurrentResult()` produces the result to display. **Today it is a random
   probability (8–97%).** This is the function to replace when a real model is added.

@@ -56,9 +56,9 @@ automatically every time an app change is merged into main. Details in
 - **Accounts are basic.** Health workers and clinic staff sign in with email and password,
   and the database only shows each clinic its own patients. There is no password reset
   (remove and recreate the login), and every health worker sees every patient. Patient
-  consent and a privacy notice (following Zimbabwe's Cyber and Data Protection Act) are built in; fill in your programme's name
-  and contact in `mobile/src/data/content.ts`, and check local health data rules
-  (retention, where data is stored) before using real patient data.
+  consent and a privacy notice (following Zimbabwe's Cyber and Data Protection Act, naming
+  DreaLens as responsible) are built in. Check local health data rules (retention, where
+  data is stored) before using real patient data.
 - **Clinic distances are typed in** by the health worker, not based on the phone's location.
 - **Works offline for screening.** Screenings and referrals are saved on the phone and
   upload when there is signal; signing in, managing clinics and logins, and clinic updates

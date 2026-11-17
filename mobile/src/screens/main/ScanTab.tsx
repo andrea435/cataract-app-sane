@@ -9,6 +9,7 @@ import { formatScannedAt, greetingFor } from '../../data/format';
 import { PrimaryButton } from '../../components/Buttons';
 import { CameraIcon } from '../../components/icons';
 import { RootStackParamList } from '../../navigation/types';
+import { PendingChip } from '../../components/ui';
 
 export default function ScanTab({ navigation }: { navigation: NativeStackNavigationProp<RootStackParamList, 'Main'> }) {
   const { history, profile, resetDraft, viewHistoryItem } = useScreening();
@@ -52,6 +53,11 @@ export default function ScanTab({ navigation }: { navigation: NativeStackNavigat
               <Text style={styles.rowMeta}>
                 {formatScannedAt(item.scanned_at)} · {item.eye_label}
               </Text>
+              {item.pending && (
+                <View style={{ marginTop: 6 }}>
+                  <PendingChip />
+                </View>
+              )}
             </View>
             <View
               style={[

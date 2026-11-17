@@ -8,19 +8,22 @@ import { colors } from '../theme/colors';
 import { useScreening } from '../state/ScreeningContext';
 import { BackLink, OutlineButton, PrimaryButton } from '../components/Buttons';
 import { RingGauge } from '../components/RingGauge';
-import { StatusStepper } from '../components/ui';
+import { Banner, PendingChip, StatusStepper } from '../components/ui';
+import { CloudIcon } from '../components/icons';
 import { formatShortDate } from '../data/format';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Result'>;
 
 export default function ResultScreen({ navigation }: Props) {
-  const { currentResult, viewOnly, setActiveTab, history, latestReferralFor, updateReferral } = useScreening();
+  const { currentResult, viewOnly, setActiveTab, history, referrals, latestReferralFor, updateReferral } = useScreening();
 
   if (!currentResult) return null;
   const { status } = currentResult;
   // Referral status can only be tracked once the scan is saved.
-  const patient = currentResult.id ? history.find(h => h.id === currentResult.id)?.patient : undefined;
-  const referral = latestReferralFor(patient?.id);
+  const scan = currentResult.id ? history.find(h => h.id === currentResult.id) : undefined;
+  const patient = scan?.patient;
+  // A referral still waiting on the phone is linked by its screening.
+  const referral = latestReferralFor(patient?.id) ?? (scan ? referrals.find(r => r.pending && r.scan_id === scan.id) : undefined);
 
   const back = () => {
     if (viewOnly) {
@@ -65,7 +68,23 @@ export default function ResultScreen({ navigation }: Props) {
           <Text style={styles.thumbLabel}>captured{'\n'}eye image</Text>
         </View>
 
-        {referral && (
+        {scan?.pending && (
+          <Banner
+            tone="warning"
+            icon={<CloudIcon size={18} color={colors.warning} />}
+            text="Saved on this phone. It uploads automatically when you have signal."
+          />
+        )}
+
+        {referral?.pending ? (
+          <View style={styles.referralCard}>
+            <View style={styles.referralHeader}>
+              <Text style={styles.referralTitle}>Referral to {referral.clinic?.name ?? 'clinic'}</Text>
+              <PendingChip label="Waiting to send" />
+            </View>
+            <Text style={styles.clinicNoteText}>It is sent to the clinic as soon as you have signal.</Text>
+          </View>
+        ) : referral && (
           <View style={styles.referralCard}>
             <View style={styles.referralHeader}>
               <Text style={styles.referralTitle}>Referred to {referral.clinic?.name ?? 'clinic'}</Text>
@@ -81,7 +100,7 @@ export default function ResultScreen({ navigation }: Props) {
           </View>
         )}
 
-        {patient && !referral && status.detected && (
+        {(patient || scan?.pending) && !referral && status.detected && (
           <View style={{ marginBottom: 12 }}>
             <OutlineButton label="Refer to a clinic" onPress={() => navigation.navigate('Refer', { scanId: currentResult.id ?? undefined })} />
           </View>

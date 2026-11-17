@@ -118,10 +118,26 @@ the group, so nobody can navigate into the other role's screens.
 - The in-progress screening draft: patient name/ID, eye, disclaimer tick, photo URI.
 - `computeCurrentResult()` produces the result to display. **Today it is a random
   probability (8–97%).** This is the function to replace when a real model is added.
-- `finishAndSave()` upserts the patient, inserts the scan, uploads the photo, resets the
-  draft, and returns the saved scan (used by Refer to attach the referral).
+- `finishAndSave()` puts the screening in the offline outbox (below), resets the draft,
+  waits up to 8 seconds for it to upload, and returns the scan (still `pending` if it
+  hasn't uploaded; used by Refer to attach the referral).
+- **Offline mode** (`src/state/outbox.ts`, `src/lib/localStore.ts`). New screenings and
+  referrals are written to an outbox on the phone (`outbox-<user id>.json` in the app's
+  document folder, photos copied to `outbox-photos/`) and uploaded oldest first by
+  `syncNow()`: on save, after each successful refresh, every 30 seconds while anything is
+  waiting or the last load failed, and when the app returns to the foreground. Ids are made
+  on the phone, so a retried upload never duplicates a row (a `23505` means an earlier try
+  got through). A run stops at the first connection error so a referral never overtakes its
+  screening; a job the server refuses stays in the outbox with its `error`. Waiting items
+  are merged into `history` / `referrals` with `pending: true`, and `sync` exposes the
+  counts for the banners. The last data loaded is cached per user (`cache-<user id>.json`)
+  so the app opens offline. When the access token has expired offline, Supabase reports no
+  session; the app then uses the user id of the saved session (`storedSessionUserId()`)
+  and does no network reads until the token renews, so the cache isn't overwritten with an
+  anonymous (empty) answer.
 - `addClinic()`, `updateClinic()`, `deleteClinic()`, `sendReferral()`, `updateReferral()`
   return `{ ok, error }` so screens can show a message instead of failing silently.
+  `sendReferral()` also goes through the outbox and reports `queued` when it is waiting.
   A database trigger mirrors the latest referral's status onto `patients.referral_status`.
 
 Result classification is in `statusFields()` (`src/data/types.ts`): `< 50%` clear,
@@ -139,7 +155,9 @@ src/
   theme/colors.ts            Design colours (oklch from the design, converted to hex)
   data/                      Types, result classification, static content, stats, date formatting
   lib/supabase.ts            Supabase client and bucket name
+  lib/localStore.ts          JSON files and photo copies on the phone (offline mode)
   state/ScreeningContext.tsx Flow state and all Supabase reads/writes
+  state/outbox.ts            Offline outbox: upload of waiting screenings and referrals
   navigation/                Stack navigator and route types
   screens/                   One file per screen; screens/main/ holds the four tabs
   components/                Buttons, RingGauge, icons, Text (applies the font),
@@ -152,7 +170,9 @@ docs/                        User guide, data model, Android build guide
 - **Detection is mocked**: capture and saving are real, the score is random.
 - **No self-service password reset**: a lost password means removing the login and
   creating a new one. All health workers can see all patients (no per-programme split).
-- Clinic distances are typed in, not computed from location; the Language, Sync data, Help & support and Log out
+- Clinic distances are typed in, not computed from location; the Language and Help & support
   settings are not wired up.
-- No offline mode: screenings need a connection to save.
+- Offline mode covers new screenings and referrals. Adding or editing clinics and logins,
+  changing a referral's status and clinic notes still need a connection, and signing in
+  needs one.
 - There are no automated tests yet.

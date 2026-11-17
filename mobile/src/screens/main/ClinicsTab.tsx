@@ -5,7 +5,7 @@ import { Text } from '../../components/Text';
 import { colors } from '../../theme/colors';
 import { useScreening } from '../../state/ScreeningContext';
 import { RootStackParamList } from '../../navigation/types';
-import { EmptyState, SegmentedControl, StatusChip } from '../../components/ui';
+import { EmptyState, PendingChip, SegmentedControl, StatusChip } from '../../components/ui';
 import { ChevronRightIcon, PlusIcon } from '../../components/icons';
 import { formatShortDate } from '../../data/format';
 
@@ -95,7 +95,7 @@ export default function ClinicsTab({ navigation }: { navigation: NativeStackNavi
                   {r.clinic?.name ?? 'Clinic'} · {formatShortDate(r.created_at)}
                 </Text>
               </View>
-              <StatusChip status={r.status} />
+              {r.pending ? <PendingChip label="Waiting to send" /> : <StatusChip status={r.status} />}
               {!!r.scan_id && <ChevronRightIcon />}
             </Pressable>
           ))}

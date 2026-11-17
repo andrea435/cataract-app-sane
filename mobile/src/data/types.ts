@@ -34,6 +34,10 @@ export interface ScanRow {
   patient_record_id: string | null;
   patient: PatientRow | null;
   created_at: string;
+  /** Local only: saved on this phone and not uploaded yet (offline mode). */
+  pending?: boolean;
+  /** Local only: the photo file on this phone, for screenings not uploaded yet. */
+  local_photo_uri?: string | null;
 }
 
 export interface ClinicRow {
@@ -75,6 +79,8 @@ export interface ReferralRow {
   patient: PatientRow | null;
   scan: Omit<ScanRow, 'patient'> | null;
   clinic: Pick<ClinicRow, 'id' | 'name'> | null;
+  /** Local only: waiting on this phone to be sent (offline mode). */
+  pending?: boolean;
 }
 
 /** Index of a status along the referred → attended → treated path (-1 if not referred). */

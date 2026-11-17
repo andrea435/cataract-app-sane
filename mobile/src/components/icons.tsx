@@ -112,3 +112,13 @@ export function HospitalIcon({ size = 22, color = '#006386' }: { size?: number; 
     </Svg>
   );
 }
+
+/** Cloud with an up arrow: waiting to upload (offline mode). */
+export function CloudIcon({ size = 18, color = '#8a5a12' }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M7 18.5h10.5a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.6 9.1 4.7 4.7 0 0 0 7 18.5Z" stroke={color} strokeWidth={1.7} strokeLinejoin="round" />
+      <Path d="M12 16v-5.5M9.6 12.6 12 10.2l2.4 2.4" stroke={color} strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}

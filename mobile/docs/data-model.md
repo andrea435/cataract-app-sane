@@ -135,12 +135,16 @@ All reads and writes live in `src/state/ScreeningContext.tsx`.
   clinic name embedded), all profiles and `worker_settings` row 1; clinic staff get their
   clinic and its referrals. Both subscribe to realtime changes on `referrals`, which
   Supabase filters through the same access rules.
-- **Finish & save:** upserts the patient on `external_id` (so a repeated Patient ID
-  reuses the same patient; a blank ID always creates a new one), inserts the scan, then
-  uploads the photo.
+- **Finish & save:** the screening goes into the phone's outbox first (offline mode), then
+  is uploaded: upserts the patient on `external_id` (so a repeated Patient ID reuses the
+  same patient; a blank ID creates a new one, with an id made on the phone), inserts the
+  scan with an id made on the phone, then uploads the photo. Because the ids come from the
+  phone, a retry after a lost reply hits a unique violation instead of a duplicate, and the
+  app treats that as done.
 - **Add / edit / remove clinic:** insert, update or delete on `clinics`.
 - **Refer to a clinic:** saves the screening first if it is still in progress, then
-  inserts a `referrals` row.
+  inserts a `referrals` row (also through the outbox, with an id made on the phone, after
+  its screening).
 - **Referral status and clinic notes:** update `referrals.status` / `clinic_note` (from the
   clinic view, or the stepper on a result). The trigger updates `patients.referral_status`.
 - **Accounts:** `supabase.functions.invoke('manage-accounts', …)` with `bootstrap`,

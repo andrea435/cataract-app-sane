@@ -10,9 +10,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY');
 }
 
+// Supabase's own default key name, spelled out so the app can read the saved session itself.
+const AUTH_STORAGE_KEY = `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token`;
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: authStorage,
+    storageKey: AUTH_STORAGE_KEY,
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: false,
@@ -25,6 +29,26 @@ AppState.addEventListener('change', state => {
   if (state === 'active') supabase.auth.startAutoRefresh();
   else supabase.auth.stopAutoRefresh();
 });
+
+/**
+ * The user id of the session saved on this phone, read straight from storage. Used offline:
+ * once the hour-long access token has expired, Supabase can't renew it without signal and
+ * reports no session, but the saved session is still there and is renewed when signal returns.
+ */
+export function storedSessionUserId(): string | null {
+  try {
+    const raw = authStorage.getItem(AUTH_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed?.user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Removes the saved session from the phone (used to log out while offline). */
+export function forgetStoredSession(): void {
+  authStorage.removeItem(AUTH_STORAGE_KEY);
+}
 
 export const EYE_CAPTURES_BUCKET = 'eye-captures';
 

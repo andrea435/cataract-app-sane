@@ -10,7 +10,9 @@ anyone training them.
 
 ## 1. Installing the app
 
-You need an Android phone with a working rear camera and an internet connection.
+You need an Android phone with a working rear camera. You need an internet connection to
+install the app and sign in the first time; after that you can screen without signal (see
+[Working without signal](#working-without-signal)).
 
 1. Get the file `app-release.apk` from your project lead (by USB cable, Google Drive,
    WhatsApp, email and so on).
@@ -21,7 +23,8 @@ You need an Android phone with a working rear camera and an internet connection.
    **Allow**. Without it you cannot capture eye images.
 
 To update the app, install the new APK over the old one. Your screening history is kept,
-because it is stored online, not on the phone.
+because it is stored online. Upload anything waiting on the phone (Profile → **Sync data**)
+before updating, just in case.
 
 ## 2. First launch
 
@@ -120,6 +123,27 @@ The app lists what to do next.
 
 The screening and photo are saved and appear in History.
 
+### Working without signal
+
+You can do everything above without signal. Each screening is saved on the phone first and
+uploads by itself as soon as there is a connection, so nothing is lost in an area with no
+network.
+
+- While offline, a yellow banner says **No signal**. Screenings and referrals made then show
+  a **Waiting to upload** (or **Waiting to send**) tag.
+- When signal returns the app uploads them in the order you made them, by itself. It keeps
+  trying every 30 seconds and whenever you open the app. Tap **Sync now** on the banner, or
+  **Sync data** on the Profile tab, to try straight away.
+- A referral made offline reaches the clinic only once it has uploaded. If the patient
+  needs to be seen urgently, phone the clinic as well.
+- The app opens without signal and shows the history, clinics and referrals from the last
+  time it was online. Updates from clinics appear once you are back online.
+- You need signal to sign in. If you log out with items still waiting, they stay on the
+  phone and upload the next time you sign in on it. Don't uninstall the app while items are
+  waiting: that deletes them.
+- If the server refuses an item (shown as **Couldn't upload**), it stays on the phone; ask
+  your admin to check it.
+
 ## 5. Clinics and referrals
 
 ### Adding clinics
@@ -191,7 +215,9 @@ the app.
 The Profile tab shows your name, region and screening totals. **Notifications** can be
 turned on or off, and **About the AI model** shows the model version. **Change password**
 lets you replace the temporary password you were given with your own; do this the first
-time you sign in. **Log out** signs you out of this phone. Language, Sync data and Help & support are not active yet.
+time you sign in. **Sync data** shows how many screenings and referrals are waiting on this phone ("Up to
+date" when none are); tap it to upload them now. **Log out** signs you out of this phone.
+Language and Help & support are not active yet.
 
 **Health workers** lists everyone on your team. Admins (shown with an **Admin** tag) can
 tap **Add** to create a login for a new health worker, in the same way as a clinic login,
@@ -202,8 +228,9 @@ and **Remove** someone who has left. Their past screenings are kept.
 | Problem | What to do |
 | --- | --- |
 | "Camera access was denied" | Open phone **Settings → Apps → Cataract Screening → Permissions** and allow Camera, then reopen the app. |
-| History or clinics are empty, or a red "Couldn't reach the server" banner shows | Check the phone's internet connection, then pull down on the screen or tap **Retry**. |
+| A yellow "No signal" banner shows | Keep working: screenings are saved on the phone and upload by themselves when there is signal. Tap **Retry** to check again. |
+| Items stay "Waiting to upload" although there is signal | Tap **Sync now**. If they still don't go, sign out and in again (you need signal), or ask your admin. |
 | "Wrong email or password" | Check the email and password exactly as given (passwords are case sensitive). If it's lost, ask a health worker to remove your login and create a new one. |
 | "This account no longer has access" | Your login was removed, or your clinic was removed. Ask a health worker for a new login. |
-| A screening didn't appear in History | It is only saved after **Finish & save to history**. Check the internet connection and screen again. |
+| A screening didn't appear in History | It is only saved after **Finish & save to history** (or **Save without referring** / **Save & send referral**). |
 | Android won't install the APK | Allow installs from unknown sources for the app you opened the file with. If an older copy was signed differently, uninstall it first. |

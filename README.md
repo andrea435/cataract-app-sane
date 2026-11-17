@@ -59,4 +59,7 @@ automatically every time an app change is merged into main. Details in
   health data rules (consent, retention, where data is stored) before using real patient
   data.
 - **Clinic distances are typed in** by the health worker, not based on the phone's location.
-- Profile items such as Language, Sync data, Help & support and Log out are visual only.
+- **Works offline for screening.** Screenings and referrals are saved on the phone and
+  upload when there is signal; signing in, managing clinics and logins, and clinic updates
+  need a connection.
+- Profile items Language and Help & support are visual only.

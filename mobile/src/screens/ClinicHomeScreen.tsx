@@ -126,9 +126,14 @@ export default function ClinicHomeScreen({ navigation }: Props) {
           {shown.length === 0 && !loading && <EmptyState title="Nothing here" body={emptyText[filter]} />}
         </View>
 
-        <Pressable onPress={() => navigation.navigate('ChangePassword')} hitSlop={8} style={styles.changePw}>
-          <Text style={styles.changePwText}>Change password</Text>
-        </Pressable>
+        <View style={styles.footerLinks}>
+          <Pressable onPress={() => navigation.navigate('ChangePassword')} hitSlop={8}>
+            <Text style={styles.changePwText}>Change password</Text>
+          </Pressable>
+          <Pressable onPress={() => navigation.navigate('PrivacyNotice')} hitSlop={8}>
+            <Text style={styles.changePwText}>Privacy notice</Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -155,6 +160,6 @@ const styles = StyleSheet.create({
   resultPillText: { fontSize: 11.5, fontWeight: '700' },
   note: { fontSize: 12.5, color: colors.textBody, lineHeight: 18 },
   footer: { fontSize: 11.5, color: colors.textSubtle },
-  changePw: { alignSelf: 'center', paddingVertical: 20 },
+  footerLinks: { flexDirection: 'row', justifyContent: 'center', gap: 24, paddingVertical: 20 },
   changePwText: { fontSize: 13, fontWeight: '600', color: colors.brand },
 });

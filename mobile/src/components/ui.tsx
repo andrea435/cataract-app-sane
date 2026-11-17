@@ -154,6 +154,19 @@ export function SyncBanner({ waiting, refused, syncing, onSync }: { waiting: num
   );
 }
 
+/** A tick box with its label, styled like the disclaimer's. */
+export function CheckRow({ checked, onToggle, label, hint }: { checked: boolean; onToggle: () => void; label: string; hint?: string }) {
+  return (
+    <Pressable style={styles.checkRow} onPress={onToggle} accessibilityRole="checkbox" accessibilityState={{ checked }}>
+      <View style={[styles.checkbox, checked && styles.checkboxChecked]}>{checked && <CheckIcon size={12} />}</View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.checkLabel}>{label}</Text>
+        {!!hint && <Text style={styles.checkHint}>{hint}</Text>}
+      </View>
+    </Pressable>
+  );
+}
+
 export function EmptyState({ title, body, children }: { title: string; body?: string; children?: React.ReactNode }) {
   return (
     <View style={styles.empty}>
@@ -212,6 +225,22 @@ const styles = StyleSheet.create({
   banner: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 12, marginBottom: 16 },
   bannerText: { flex: 1, fontSize: 12.5, fontWeight: '500', lineHeight: 18 },
   bannerAction: { fontSize: 12.5, fontWeight: '700' },
+
+  checkRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 8 },
+  checkbox: {
+    width: 19,
+    height: 19,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    marginTop: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.cardBg,
+  },
+  checkboxChecked: { backgroundColor: colors.brand, borderColor: colors.brand },
+  checkLabel: { fontSize: 13.5, color: colors.textLabel, lineHeight: 20 },
+  checkHint: { fontSize: 11.5, color: colors.textSubtle, lineHeight: 16, marginTop: 2 },
 
   empty: { alignItems: 'center', paddingVertical: 28, paddingHorizontal: 16, borderRadius: 14, backgroundColor: colors.surfaceMuted, gap: 6 },
   emptyTitle: { fontSize: 14, fontWeight: '700', color: colors.ink, textAlign: 'center' },

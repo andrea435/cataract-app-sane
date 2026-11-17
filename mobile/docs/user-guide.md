@@ -66,7 +66,32 @@ Tap **Start new screening** on the Scan tab.
 
 Tap **Continue to capture**.
 
-### Step 2: Capture the eye image
+### Step 2: Patient consent
+
+Tap **Continue to consent**. Before any photo is taken, read the box **How their
+information is used** to the patient in a language they understand. Tap **Read the full
+privacy notice** if they want more detail. The notice is also on the Profile tab.
+
+Under **Read it in**, pick the patient's language: English (the default), isiNdebele,
+chiShona, Setswana or TjiKalanga. The box then shows the summary and the two questions to
+ask in that language, with the English in small grey text under each line. The app
+remembers the last language you picked until it is closed. TjiKalanga wording isn't written
+yet, so for now it shows the English for you to explain. Only the patient's part changes
+language; the rest of the app stays in English.
+
+- **Consent given by:** choose **The patient**, or **Parent or guardian** for a child or an
+  adult who can't decide for themselves, and type the guardian's name.
+- Tick **agrees to the screening** (required) once they say yes.
+- Tick **agrees to share the result with a clinic** if they also agree to a clinic seeing
+  it should they need a referral. This is optional. If they say no now, the app asks again
+  when you refer them.
+- Tap **Agreed, continue to capture**. If they don't agree, tap **Patient does not agree**:
+  the screening stops and nothing is saved.
+
+The app saves the consent (when, who gave it, and the version of the notice) with the
+screening.
+
+### Step 3: Capture the eye image
 
 The camera opens with a circle on screen and the eye you chose shown at the top. Align the
 eye within the circle.
@@ -80,16 +105,16 @@ Tips for a good image:
 
 Tap the shutter button. Tap **Cancel** to go back to the main screen without saving.
 
-### Step 3: Analysis
+### Step 4: Analysis
 
 The app shows "Analyzing image" for a couple of seconds.
 
-### Step 4: Read and accept the disclaimer
+### Step 5: Read and accept the disclaimer
 
 Read the notice, tick **I understand this is a screening aid, not a diagnosis**, and tap
 **View results**.
 
-### Step 5: The result
+### Step 6: The result
 
 The result screen shows:
 
@@ -107,7 +132,7 @@ The result screen shows:
 
 Tap **View recommended steps**.
 
-### Step 6: Recommended steps and saving
+### Step 7: Recommended steps and saving
 
 The app lists what to do next.
 
@@ -171,6 +196,8 @@ referrals can't be removed.
 2. Choose the clinic. You can add a new one from here with **Add clinic**.
 3. Optionally write a note for the clinic, for example how long the patient has had
    symptoms or whether they need help with transport.
+   If the patient didn't agree to share their result with a clinic at screening, a
+   **Consent to share** box appears: ask them again and tick it only if they agree.
 4. Tap **Save & send referral** (or **Send referral**). The clinic sees the patient in its
    clinic view straight away.
 
@@ -196,8 +223,8 @@ You only ever see patients referred to your own clinic. The first time you sign 
 
 The clinic view shows how many patients are **Waiting**, **Attended** and **Treated**, and
 lists them. New referrals appear automatically; pull down to refresh. Tap a patient to see
-their screening result, eye photo, patient ID, who referred them and the health worker's
-note. Then:
+their screening result, eye photo, patient ID, who referred them, when they agreed to share
+their result with you, and the health worker's note. Then:
 
 - Tap **Mark as attended** when the patient arrives, and **Mark as treated** after
   treatment. You can also tap a step on the tracker to correct it.

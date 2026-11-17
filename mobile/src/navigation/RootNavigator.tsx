@@ -18,6 +18,8 @@ import AddAccountScreen from '../screens/AddAccountScreen';
 import ClinicHomeScreen from '../screens/ClinicHomeScreen';
 import ClinicReferralScreen from '../screens/ClinicReferralScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
+import ConsentScreen from '../screens/ConsentScreen';
+import PrivacyNoticeScreen from '../screens/PrivacyNoticeScreen';
 import { useScreening } from '../state/ScreeningContext';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -34,17 +36,20 @@ export default function RootNavigator() {
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
           <Stack.Screen name="SignIn" component={SignInScreen} />
           <Stack.Screen name="Setup" component={SetupScreen} />
+          <Stack.Screen name="PrivacyNotice" component={PrivacyNoticeScreen} />
         </Stack.Group>
       ) : profile.role === 'clinic' ? (
         <Stack.Group>
           <Stack.Screen name="ClinicHome" component={ClinicHomeScreen} />
           <Stack.Screen name="ClinicReferral" component={ClinicReferralScreen} />
           <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+          <Stack.Screen name="PrivacyNotice" component={PrivacyNoticeScreen} />
         </Stack.Group>
       ) : (
         <Stack.Group>
           <Stack.Screen name="Main" component={MainScreen} />
           <Stack.Screen name="PatientInfo" component={PatientInfoScreen} />
+          <Stack.Screen name="Consent" component={ConsentScreen} />
           <Stack.Screen name="Capture" component={CaptureScreen} options={{ gestureEnabled: false }} />
           <Stack.Screen name="Scanning" component={ScanningScreen} options={{ gestureEnabled: false }} />
           <Stack.Screen name="Disclaimer" component={DisclaimerScreen} />
@@ -55,6 +60,7 @@ export default function RootNavigator() {
           <Stack.Screen name="Team" component={TeamScreen} />
           <Stack.Screen name="AddAccount" component={AddAccountScreen} />
           <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+          <Stack.Screen name="PrivacyNotice" component={PrivacyNoticeScreen} />
         </Stack.Group>
       )}
     </Stack.Navigator>

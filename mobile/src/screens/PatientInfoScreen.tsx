@@ -72,9 +72,9 @@ export default function PatientInfoScreen({ navigation }: Props) {
       <View style={{ flex: 1 }} />
 
       <PrimaryButton
-        label="Continue to capture"
+        label="Continue to consent"
         disabled={incomplete}
-        onPress={() => navigation.navigate('Capture')}
+        onPress={() => navigation.navigate('Consent')}
       />
     </SafeAreaView>
   );

@@ -55,13 +55,14 @@ Health worker (after sign-in)
 Main (tabs: Scan · History · Clinics · Profile)
                 │
                 └─ Start new screening
-                     PatientInfo ─► Capture ─► Scanning ─► Disclaimer ─► Result ─► Recommend
+                     PatientInfo ─► Consent ─► Capture ─► Scanning ─► Disclaimer ─► Result ─► Recommend
                                                                                      │
                                        Save without referring / Finish & save ◄──────┤
                                                        Refer to a clinic ─► Refer ◄──┘
 History item ─► Result (view only, referral tracker or "Refer to a clinic" ─► Refer)
 Clinics tab ─► ClinicForm (add / edit / remove, clinic logins) ─► AddAccount
 Profile ─► Team (health workers) ─► AddAccount
+Consent / Profile / ClinicHome ─► PrivacyNotice
 
 Signed out
 Onboarding ─► SignIn (─► Setup, only while no accounts exist)
@@ -115,7 +116,10 @@ the group, so nobody can navigate into the other role's screens.
   (`manageAccounts()` in `src/lib/supabase.ts`).
 - Photos: the bucket is private; `photoUrlFor(path)` returns a signed link fetched in bulk
   after each load.
-- The in-progress screening draft: patient name/ID, eye, disclaimer tick, photo URI.
+- The in-progress screening draft: patient name/ID, eye, `consent` (from the Consent
+  screen), disclaimer tick, photo URI. Consent is stored on the scan; the privacy notice
+  text, `CONSENT_VERSION` and `PRIVACY_CONTACT` (programme name and contact phone shown in the notice)
+  are in `src/data/content.ts`. Bump `CONSENT_VERSION` whenever the notice changes.
 - `computeCurrentResult()` produces the result to display. **Today it is a random
   probability (8–97%).** This is the function to replace when a real model is added.
 - `finishAndSave()` puts the screening in the offline outbox (below), resets the draft,

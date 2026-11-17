@@ -10,12 +10,14 @@ import { Banner, EmptyState, SegmentedControl, StatusChip } from '../components/
 import { ChevronRightIcon } from '../components/icons';
 import { ReferralStatus, statusFields } from '../data/types';
 import { formatShortDate } from '../data/format';
+import { daysLabel, daysSinceReferral, followUpDays, isFollowUpDue } from '../data/followUp';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ClinicHome'>;
 type Filter = ReferralStatus | 'all';
 
 export default function ClinicHomeScreen({ navigation }: Props) {
-  const { profile, clinics, referrals, loading, loadError, refreshAll, signOut } = useScreening();
+  const { profile, clinics, referrals, settings, loading, loadError, refreshAll, signOut } = useScreening();
+  const days = followUpDays(settings);
   const [filter, setFilter] = useState<Filter>('referred');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -119,6 +121,7 @@ export default function ClinicHomeScreen({ navigation }: Props) {
                 )}
                 <Text style={styles.footer}>
                   Referred by {r.worker_name} · {formatShortDate(r.created_at)}
+                  {isFollowUpDue(r, days) && <Text style={styles.overdue}> · Waiting {daysLabel(daysSinceReferral(r))}</Text>}
                 </Text>
               </Pressable>
             );
@@ -160,6 +163,7 @@ const styles = StyleSheet.create({
   resultPillText: { fontSize: 11.5, fontWeight: '700' },
   note: { fontSize: 12.5, color: colors.textBody, lineHeight: 18 },
   footer: { fontSize: 11.5, color: colors.textSubtle },
+  overdue: { fontSize: 11.5, fontWeight: '700', color: colors.danger },
   footerLinks: { flexDirection: 'row', justifyContent: 'center', gap: 24, paddingVertical: 20 },
   changePwText: { fontSize: 13, fontWeight: '600', color: colors.brand },
 });

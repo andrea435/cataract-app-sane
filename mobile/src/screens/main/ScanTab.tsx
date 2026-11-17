@@ -7,12 +7,15 @@ import { useScreening } from '../../state/ScreeningContext';
 import { computeStats } from '../../data/stats';
 import { formatScannedAt, greetingFor } from '../../data/format';
 import { PrimaryButton } from '../../components/Buttons';
-import { CameraIcon } from '../../components/icons';
+import { CameraIcon, ChevronRightIcon } from '../../components/icons';
+import { daysLabel, dueFollowUps, followUpDays } from '../../data/followUp';
 import { RootStackParamList } from '../../navigation/types';
 import { PendingChip } from '../../components/ui';
 
 export default function ScanTab({ navigation }: { navigation: NativeStackNavigationProp<RootStackParamList, 'Main'> }) {
-  const { history, profile, resetDraft, viewHistoryItem } = useScreening();
+  const { history, profile, referrals, settings, resetDraft, viewHistoryItem } = useScreening();
+  const days = followUpDays(settings);
+  const due = dueFollowUps(referrals, days).length;
   const stats = computeStats(history);
   const recent = history.slice(0, 3);
 
@@ -43,6 +46,21 @@ export default function ScanTab({ navigation }: { navigation: NativeStackNavigat
       </View>
 
       <PrimaryButton big label="Start new screening" onPress={startScreening} icon={<CameraIcon />} />
+
+      {due > 0 && (
+        <Pressable style={styles.followUp} onPress={() => navigation.navigate('FollowUps')}>
+          <View style={styles.followUpBadge}>
+            <Text style={styles.followUpBadgeText}>{due}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.followUpTitle}>
+              {due === 1 ? '1 follow-up due' : `${due} follow-ups due`}
+            </Text>
+            <Text style={styles.followUpBody}>Referred patients not seen at the clinic after {daysLabel(days)}</Text>
+          </View>
+          <ChevronRightIcon color={colors.danger} />
+        </Pressable>
+      )}
 
       <Text style={styles.sectionLabel}>Recent activity</Text>
       <View style={{ gap: 10 }}>
@@ -85,6 +103,19 @@ const styles = StyleSheet.create({
   statCard: { flex: 1, backgroundColor: colors.surfaceMuted, borderRadius: 14, padding: 16 },
   statValue: { fontSize: 22, fontWeight: '700', color: colors.ink },
   statLabel: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  followUp: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 14,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: colors.dangerBg,
+  },
+  followUpBadge: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center' },
+  followUpBadgeText: { fontSize: 13.5, fontWeight: '700', color: colors.white },
+  followUpTitle: { fontSize: 14, fontWeight: '700', color: colors.danger },
+  followUpBody: { fontSize: 12, color: colors.textBody, marginTop: 1 },
   sectionLabel: { fontSize: 13, fontWeight: '600', color: colors.textLabel, marginTop: 26, marginBottom: 12 },
   row: {
     flexDirection: 'row',

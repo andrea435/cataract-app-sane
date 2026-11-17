@@ -8,6 +8,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 
 import { initialsOf } from '../../data/types';
+import { followUpDays } from '../../data/followUp';
 
 export default function ProfileTab({ navigation }: { navigation: NativeStackNavigationProp<RootStackParamList, 'Main'> }) {
   const { history, settings, profile, accounts, toggleNotifications, signOut, sync, syncNow } = useScreening();
@@ -41,6 +42,7 @@ export default function ProfileTab({ navigation }: { navigation: NativeStackNavi
     },
     { label: 'Notifications', isToggle: true },
     { label: 'About the AI model', value: settings?.ai_model_version ?? 'v2.3' },
+    { label: 'Follow-up reminders', value: `After ${followUpDays(settings)} days`, onPress: () => navigation.navigate('FollowUps') },
     { label: 'Privacy notice', onPress: () => navigation.navigate('PrivacyNotice') },
     { label: 'Help & support' },
     { label: 'Log out', onPress: confirmSignOut, danger: true },

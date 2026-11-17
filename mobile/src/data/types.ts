@@ -93,6 +93,8 @@ export interface ReferralRow {
   clinic_note: string | null;
   /** When the patient agreed to share their result with the clinic. */
   share_consent_at?: string | null;
+  /** Last time the health worker followed up a patient who hadn't attended. */
+  followed_up_at?: string | null;
   created_at: string;
   updated_at: string;
   patient: PatientRow | null;
@@ -135,6 +137,8 @@ export interface WorkerSettingsRow {
   worker_region: string;
   notifications_enabled: boolean;
   ai_model_version: string;
+  /** Days before a referred patient who hasn't attended is flagged for follow-up. */
+  follow_up_days?: number;
 }
 
 export interface StatusFields {

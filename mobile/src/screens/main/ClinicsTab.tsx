@@ -8,11 +8,13 @@ import { RootStackParamList } from '../../navigation/types';
 import { EmptyState, PendingChip, SegmentedControl, StatusChip } from '../../components/ui';
 import { ChevronRightIcon, PlusIcon } from '../../components/icons';
 import { formatShortDate } from '../../data/format';
+import { followUpDays, isFollowUpDue } from '../../data/followUp';
 
 type View_ = 'clinics' | 'referrals';
 
 export default function ClinicsTab({ navigation }: { navigation: NativeStackNavigationProp<RootStackParamList, 'Main'> }) {
-  const { clinics, referrals, history, accounts, viewHistoryItem } = useScreening();
+  const { clinics, referrals, history, accounts, settings, viewHistoryItem } = useScreening();
+  const days = followUpDays(settings);
   const [view, setView] = useState<View_>('clinics');
 
   const openCount = (clinicId: string) => referrals.filter(r => r.clinic_id === clinicId && r.status !== 'treated').length;
@@ -95,7 +97,15 @@ export default function ClinicsTab({ navigation }: { navigation: NativeStackNavi
                   {r.clinic?.name ?? 'Clinic'} · {formatShortDate(r.created_at)}
                 </Text>
               </View>
-              {r.pending ? <PendingChip label="Waiting to send" /> : <StatusChip status={r.status} />}
+              {r.pending ? (
+                <PendingChip label="Waiting to send" />
+              ) : isFollowUpDue(r, days) ? (
+                <View style={styles.dueChip}>
+                  <Text style={styles.dueChipText}>Follow up</Text>
+                </View>
+              ) : (
+                <StatusChip status={r.status} />
+              )}
               {!!r.scan_id && <ChevronRightIcon />}
             </Pressable>
           ))}
@@ -154,4 +164,6 @@ const styles = StyleSheet.create({
   },
   rowName: { fontSize: 14, fontWeight: '600', color: colors.ink },
   rowMeta: { fontSize: 12, color: colors.textSubtle },
+  dueChip: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 14, backgroundColor: colors.dangerBg },
+  dueChipText: { fontSize: 11.5, fontWeight: '700', color: colors.danger },
 });

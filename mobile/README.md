@@ -26,9 +26,9 @@ npm install
 npm start
 ```
 
-Open the app in **Expo Go** on a physical phone by scanning the QR code (a real camera is
-needed to capture images), or use `npm run android` / `npm run ios` with an emulator or
-simulator. The iOS Simulator has no camera; the Android emulator's virtual camera works.
+The cataract model runs through `react-native-fast-tflite`, a native module, so the app
+needs a **development build** (`npx expo run:android` / `npx expo run:ios`, then `npm start`)
+or the standalone APK; it does not work in Expo Go. A real camera is needed to capture images. The iOS Simulator has no camera; the Android emulator's virtual camera works.
 
 | Script | What it does |
 | --- | --- |
@@ -83,7 +83,9 @@ the group, so nobody can navigate into the other role's screens.
   reload; a banner with Retry appears when loading fails.
 - **PatientInfo**: name, optional Patient ID, left/right eye.
 - **Capture**: live camera with alignment ring; requests camera permission.
-- **Scanning**: 2-second animation, then calls `computeCurrentResult`.
+- **Scanning**: runs the VGG19 model on the photo (`analyseEyePhoto` in `src/lib/eyeModel/`,
+  see [docs/detection-model.md](docs/detection-model.md)), stores it as `analysis`, then goes
+  to Disclaimer. If the model says the photo isn't an eye, or fails, it offers **Retake photo**.
 - **Disclaimer**: must tick "screening aid, not a diagnosis" to continue.
 - **Result**: ring gauge, status, severity, photo. For saved scans it shows the patient's
   latest referral (clinic, Referred → Attended → Treated stepper, clinic note) or, when
@@ -122,8 +124,8 @@ the group, so nobody can navigate into the other role's screens.
   screen), disclaimer tick, photo URI. Consent is stored on the scan; the privacy notice
   text, `CONSENT_VERSION` and `PRIVACY_CONTACT` (programme name and contact phone shown in the notice)
   are in `src/data/content.ts`. Bump `CONSENT_VERSION` whenever the notice changes.
-- `computeCurrentResult()` produces the result to display. **Today it is a random
-  probability (8–97%).** This is the function to replace when a real model is added.
+- `computeCurrentResult()` builds the result to display from `analysis` (the model's
+  cataract probability, 0–100).
 - `finishAndSave()` puts the screening in the offline outbox (below), resets the draft,
   waits up to 8 seconds for it to upload, and returns the scan (still `pending` if it
   hasn't uploaded; used by Refer to attach the referral).
@@ -182,7 +184,8 @@ docs/                        User guide, data model, Android build guide
 
 ## Known limitations
 
-- **Detection is mocked**: capture and saving are real, the score is random.
+- **The detection model is not yet validated in the field**, and severity is a confidence
+  band, not a clinical grade.
 - **No self-service password reset**: a lost password means removing the login and
   creating a new one. All health workers can see all patients (no per-programme split).
 - Clinic distances are typed in, not computed from location; the Language and Help & support

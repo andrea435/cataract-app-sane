@@ -5,8 +5,9 @@ anyone training them.
 
 > **Important.** The app gives a screening estimate, not a diagnosis. Use it to decide who
 > should be referred. Every patient flagged for cataract must be seen by an ophthalmologist
-> or trained eye care professional. In this version of the app the probability score is
-> simulated, so it must not be used to make decisions about real patients yet.
+> or trained eye care professional. The score comes from a trained model that runs on the
+> phone. It has not yet been checked against eye specialists' findings in the field, so
+> treat it with care.
 
 ## 1. Installing the app
 
@@ -107,7 +108,9 @@ Tap the shutter button. Tap **Cancel** to go back to the main screen without sav
 
 ### Step 4: Analysis
 
-The app shows "Analyzing image" for a couple of seconds.
+The app shows "Analyzing image" while the model checks the part of the photo inside the
+circle (a few seconds, no signal needed). If it can't find an eye in the photo, it says
+**No eye found in the photo**: tap **Retake photo** and fill the circle with the eye.
 
 ### Step 5: Read and accept the disclaimer
 

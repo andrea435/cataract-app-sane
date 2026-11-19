@@ -201,8 +201,7 @@ docs/                        User guide, data model, Android build guide
   band, not a clinical grade.
 - **No self-service password reset**: a lost password means removing the login and
   creating a new one. All health workers can see all patients (no per-programme split).
-- Clinic distances are typed in, not computed from location; the Language and Help & support
-  settings are not wired up.
+- Clinic distances are typed in, not computed from location.
 - Offline mode covers new screenings and referrals. Adding or editing clinics and logins,
   changing a referral's status and clinic notes still need a connection, and signing in
   needs one.

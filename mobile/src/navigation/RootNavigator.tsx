@@ -22,6 +22,7 @@ import ReportsScreen from '../screens/ReportsScreen';
 import FollowUpsScreen from '../screens/FollowUpsScreen';
 import ConsentScreen from '../screens/ConsentScreen';
 import PrivacyNoticeScreen from '../screens/PrivacyNoticeScreen';
+import AboutModelScreen from '../screens/AboutModelScreen';
 import { useScreening } from '../state/ScreeningContext';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -65,6 +66,7 @@ export default function RootNavigator() {
           <Stack.Screen name="AddAccount" component={AddAccountScreen} />
           <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
           <Stack.Screen name="PrivacyNotice" component={PrivacyNoticeScreen} />
+          <Stack.Screen name="AboutModel" component={AboutModelScreen} />
         </Stack.Group>
       )}
     </Stack.Navigator>

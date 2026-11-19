@@ -54,5 +54,14 @@ export const colors = {
   captureShutterBorder: '#50565a', // oklch(45% 0.01 235)
   captureCaption: '#c2d0d9', // oklch(85% 0.02 235)
 
+  // "Screening Results" dashboard (Sane's Case Studies mobile frame, 2026-11-19).
+  heroTeal: '#6fc7bb', // hero panel
+  heroPill: 'rgba(255,255,255,0.45)',
+  heroText: '#ffffff',
+  statTeal: '#5bbfb2', // big "Patients captured" number
+  statCardBg: '#f7f8f2', // warm off-white stat card / See more button
+  cardGlass: 'rgba(255,255,255,0.82)', // frosted label over a result photo
+  cardPill: 'rgba(20,28,33,0.45)', // clinic pill over a result photo
+
   white: '#ffffff',
 } as const;

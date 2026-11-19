@@ -18,6 +18,7 @@ import AddAccountScreen from '../screens/AddAccountScreen';
 import ClinicHomeScreen from '../screens/ClinicHomeScreen';
 import ClinicReferralScreen from '../screens/ClinicReferralScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
+import ReportsScreen from '../screens/ReportsScreen';
 import FollowUpsScreen from '../screens/FollowUpsScreen';
 import ConsentScreen from '../screens/ConsentScreen';
 import PrivacyNoticeScreen from '../screens/PrivacyNoticeScreen';
@@ -59,6 +60,7 @@ export default function RootNavigator() {
           <Stack.Screen name="ClinicForm" component={ClinicFormScreen} />
           <Stack.Screen name="Refer" component={ReferScreen} />
           <Stack.Screen name="FollowUps" component={FollowUpsScreen} />
+          <Stack.Screen name="Reports" component={ReportsScreen} />
           <Stack.Screen name="Team" component={TeamScreen} />
           <Stack.Screen name="AddAccount" component={AddAccountScreen} />
           <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />

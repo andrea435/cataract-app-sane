@@ -32,6 +32,7 @@ export default function ProfileTab({ navigation }: { navigation: NativeStackNavi
     );
 
   const rows: { label: string; value?: string; isToggle?: boolean; onPress?: () => void; danger?: boolean }[] = [
+    { label: 'Reports', onPress: () => navigation.navigate('Reports') },
     { label: 'Health workers', value: workerCount ? String(workerCount) : undefined, onPress: () => navigation.navigate('Team') },
     { label: 'Change password', onPress: () => navigation.navigate('ChangePassword') },
     { label: 'Language', value: 'English' },

@@ -61,6 +61,7 @@ Main (tabs: Scan · History · Clinics · Profile)
                                                        Refer to a clinic ─► Refer ◄──┘
 History item ─► Result (view only, referral tracker or "Refer to a clinic" ─► Refer)
 Clinics tab ─► ClinicForm (add / edit / remove, clinic logins) ─► AddAccount
+Profile ─► Reports
 Profile ─► Team (health workers) ─► AddAccount
 Scan tab "follow-ups due" / Profile ─► FollowUps
 Consent / Profile / ClinicHome ─► PrivacyNotice
@@ -144,6 +145,11 @@ the group, so nobody can navigate into the other role's screens.
   return `{ ok, error }` so screens can show a message instead of failing silently.
   `sendReferral()` also goes through the outbox and reports `queued` when it is waiting.
   A database trigger mirrors the latest referral's status onto `patients.referral_status`.
+
+Reports: `src/data/reports.ts` (`buildReport()`, `reportText()` for Share) computes
+everything on the phone from the loaded `history` and `referrals`, so it needs no extra
+queries and works offline. Health workers see every screening, so the report covers the
+whole team.
 
 Follow-up reminders: `src/data/followUp.ts` decides which referrals are due
 (`status = referred` and `follow_up_days` since `created_at` or `followed_up_at`);

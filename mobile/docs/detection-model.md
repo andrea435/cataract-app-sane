@@ -28,6 +28,12 @@ retrained with a different preprocessing, change `rgbaToModelInput` in
 
 ## How the app runs it
 
+0. **Loading the model**: `expo-asset` copies the bundled `.tflite` to a real file first and
+   fast-tflite loads it from that `file://` path. (In a release APK React Native gives the
+   asset as an Android resource name, which fast-tflite's loader can't open; build 30 failed
+   this way with "detection model did not run".) If any step fails, the Scanning screen shows
+   the step and the error under "Could not analyse the photo".
+
 1. **Capture** records the size of the camera preview and the 260 pt alignment circle.
 2. **Scanning** (`analyseEyePhoto`):
    - crops the photo to the square inside the circle (`ringCrop`; the preview covers its

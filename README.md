@@ -19,6 +19,7 @@ See [Closing the treatment gap](mobile/docs/impact.md).
 
 | Document | For | What's in it |
 | --- | --- | --- |
+| [What's changed](CHANGELOG.md) | Everyone | Every update so far, and the setup still to do |
 | [Closing the treatment gap](mobile/docs/impact.md) | Partners, funders, health programmes | Why patients get lost between screening and surgery, how the app closes that gap, and how it can scale globally |
 | [User guide](mobile/docs/user-guide.md) | Health workers, trainers | Installing the app and doing a screening step by step |
 | [Developer guide](mobile/README.md) | Developers | Running the app, project structure, how data flows |

@@ -15,15 +15,18 @@ You need an Android phone with a working rear camera. You need an internet conne
 install the app and sign in the first time; after that you can screen without signal (see
 [Working without signal](#working-without-signal)).
 
-1. Get the file `app-release.apk` from your project lead (by USB cable, Google Drive,
-   WhatsApp, email and so on).
+1. On the phone, open the download link
+   <https://github.com/andrea435/cataract-app-sane/releases/download/apk-latest/cataract-screening.apk>
+   (your project lead can share it by WhatsApp or as a QR code). It always gives the newest
+   version. You can also get the APK file from your project lead by USB cable, Google Drive
+   or email.
 2. Open the file on the phone. The first time, Android asks you to allow installs from
    that source (for example "Files" or "Chrome"). Allow it, go back, and tap **Install**.
 3. Open **Cataract Screening** from your app list.
 4. The first time you take a photo, the app asks for permission to use the camera. Tap
    **Allow**. Without it you cannot capture eye images.
 
-To update the app, install the new APK over the old one. Your screening history is kept,
+To update the app, download the APK from the same link and install it over the old one. Your screening history is kept,
 because it is stored online. Upload anything waiting on the phone (Profile → **Sync data**)
 before updating, just in case.
 

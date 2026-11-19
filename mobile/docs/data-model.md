@@ -150,6 +150,12 @@ fails the scan is still saved without a photo. The app shows photos through sign
 (`createSignedUrls`, valid one hour, re-signed on every refresh). Health workers can read and
 write every photo; clinic staff can read only photos of screenings referred to their clinic.
 
+> **Not live yet (checked 19 November 2026).** These photo rules come from
+> `20261113100500_eye_photo_policies.sql`, which has not been run on the live project: the
+> old open policies `anon read eye-captures` and `anon write eye-captures` are still in
+> place, so anyone with the app's public key can read and upload eye photos. Run that file
+> in the Supabase dashboard's SQL editor to close this.
+
 ## How the app writes data
 
 All reads and writes live in `src/state/ScreeningContext.tsx`.

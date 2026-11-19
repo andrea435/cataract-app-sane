@@ -47,7 +47,7 @@ The app has four tabs at the bottom.
 | Tab | What it shows |
 | --- | --- |
 | **Scan** | Your screenings today, how many were flagged for referral, the **Start new screening** button, and your three most recent screenings |
-| **History** | Every screening saved, newest first, with result, confidence and referral status |
+| **History** | The Screening Results dashboard: every screening saved, newest first, as photo cards with result, confidence, clinic and referral status; filter by clinic or search |
 | **Clinics** | The clinics you refer to (add and edit them here) and every referral you have sent, with its status |
 | **Profile** | Your name and region, your total, flagged and this-week counts, and settings |
 
@@ -267,9 +267,12 @@ their result with you, and the health worker's note. Then:
 ## 7. Reviewing past screenings
 
 Open the **History** tab and tap any screening to see its full result again, including the
-photo. To find a patient, type part of their name or patient ID in the search box at the top.
-The buttons under it narrow the list: **Flagged** (cataract detected), **Referred** (sent to a
-clinic) and **Clear** (no cataract detected). Tap **Back to history** to return. Past screenings cannot be edited or deleted from
+photo. The tab opens on the **Screening Results** dashboard. The clinic tabs under it
+(**All Clinics**, each clinic patients were referred to, and **Not referred**) narrow the list,
+and the card below counts the patients and screenings shown. To find a patient, type part of
+their name or patient ID in the search box. Each screening is a card with its eye photo, the
+clinic it was referred to, its number (No. 1 is the first screening saved), the result and
+the referral status. Ten show at a time; tap **See More** for the next ten. Tap **Back to history** to return. Past screenings cannot be edited or deleted from
 the app.
 
 ## 8. Profile and settings

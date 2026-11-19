@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '../../components/Text';
 import { colors } from '../../theme/colors';
 import { useScreening } from '../../state/ScreeningContext';
@@ -9,6 +9,7 @@ import { RootStackParamList } from '../../navigation/types';
 
 import { initialsOf } from '../../data/types';
 import { followUpDays } from '../../data/followUp';
+import { PRIVACY_CONTACT } from '../../data/content';
 
 export default function ProfileTab({ navigation }: { navigation: NativeStackNavigationProp<RootStackParamList, 'Main'> }) {
   const { history, settings, profile, accounts, toggleNotifications, signOut, sync, syncNow } = useScreening();
@@ -31,22 +32,48 @@ export default function ProfileTab({ navigation }: { navigation: NativeStackNavi
       ]
     );
 
-  const rows: { label: string; value?: string; isToggle?: boolean; onPress?: () => void; danger?: boolean }[] = [
-    { label: 'Reports', onPress: () => navigation.navigate('Reports') },
-    { label: 'Health workers', value: workerCount ? String(workerCount) : undefined, onPress: () => navigation.navigate('Team') },
-    { label: 'Change password', onPress: () => navigation.navigate('ChangePassword') },
-    { label: 'Language', value: 'English' },
+  type Row = { label: string; value?: string; isToggle?: boolean; onPress?: () => void; danger?: boolean };
+  // Grouped so the list reads in sections, like a phone's own settings. Every row with an
+  // arrow opens something.
+  const sections: { title: string; rows: Row[] }[] = [
     {
-      label: 'Sync data',
-      value: sync.syncing ? 'Uploading…' : sync.waiting > 0 ? `${sync.waiting} waiting` : 'Up to date',
-      onPress: syncNow,
+      title: 'Patients & team',
+      rows: [
+        { label: 'Reports', onPress: () => navigation.navigate('Reports') },
+        { label: 'Follow-up reminders', value: `After ${followUpDays(settings)} days`, onPress: () => navigation.navigate('FollowUps') },
+        { label: 'Health workers', value: workerCount ? String(workerCount) : undefined, onPress: () => navigation.navigate('Team') },
+      ],
     },
-    { label: 'Notifications', isToggle: true },
-    { label: 'About the AI model', value: settings?.ai_model_version ?? 'v2.3' },
-    { label: 'Follow-up reminders', value: `After ${followUpDays(settings)} days`, onPress: () => navigation.navigate('FollowUps') },
-    { label: 'Privacy notice', onPress: () => navigation.navigate('PrivacyNotice') },
-    { label: 'Help & support' },
-    { label: 'Log out', onPress: confirmSignOut, danger: true },
+    {
+      title: 'This phone',
+      rows: [
+        {
+          label: 'Sync data',
+          value: sync.syncing ? 'Uploading…' : sync.waiting > 0 ? `${sync.waiting} waiting` : 'Up to date',
+          onPress: syncNow,
+        },
+        { label: 'Notifications', isToggle: true },
+      ],
+    },
+    {
+      title: 'About',
+      rows: [
+        { label: 'About the AI model', value: settings?.ai_model_version ?? 'VGG19', onPress: () => navigation.navigate('AboutModel') },
+        { label: 'Privacy notice', onPress: () => navigation.navigate('PrivacyNotice') },
+        {
+          label: 'Help & support',
+          value: `Call ${PRIVACY_CONTACT.organisation}`,
+          onPress: () => Linking.openURL(`tel:${PRIVACY_CONTACT.phone.replace(/\s/g, '')}`),
+        },
+      ],
+    },
+    {
+      title: 'Account',
+      rows: [
+        { label: 'Change password', onPress: () => navigation.navigate('ChangePassword') },
+        { label: 'Log out', onPress: confirmSignOut, danger: true },
+      ],
+    },
   ];
 
   return (
@@ -79,20 +106,28 @@ export default function ProfileTab({ navigation }: { navigation: NativeStackNavi
         </View>
       </View>
 
-      <View>
-        {rows.map((row, i) => (
-          <Pressable key={i} style={styles.settingRow} onPress={row.onPress} disabled={!row.onPress}>
-            <Text style={[styles.settingLabel, row.danger && { color: colors.danger }]}>{row.label}</Text>
-            {row.isToggle ? (
-              <Pressable onPress={toggleNotifications} style={[styles.toggle, { backgroundColor: notifOn ? colors.brand : colors.border }]}>
-                <View style={[styles.toggleKnob, { left: notifOn ? 19 : 2 }]} />
-              </Pressable>
-            ) : (
-              <Text style={styles.settingValue}>{row.danger ? '' : row.value ? `${row.value} ›` : '›'}</Text>
-            )}
-          </Pressable>
-        ))}
-      </View>
+      {sections.map(section => (
+        <View key={section.title} style={styles.section}>
+          <Text style={styles.sectionTitle}>{section.title}</Text>
+          {section.rows.map((row, i) => (
+            <Pressable
+              key={row.label}
+              style={[styles.settingRow, i === section.rows.length - 1 && { borderBottomWidth: 0 }]}
+              onPress={row.onPress}
+              disabled={!row.onPress}
+            >
+              <Text style={[styles.settingLabel, row.danger && { color: colors.danger }]}>{row.label}</Text>
+              {row.isToggle ? (
+                <Pressable onPress={toggleNotifications} style={[styles.toggle, { backgroundColor: notifOn ? colors.brand : colors.border }]}>
+                  <View style={[styles.toggleKnob, { left: notifOn ? 19 : 2 }]} />
+                </Pressable>
+              ) : (
+                <Text style={styles.settingValue}>{row.danger ? '' : row.value ? `${row.value} ›` : '›'}</Text>
+              )}
+            </Pressable>
+          ))}
+        </View>
+      ))}
     </View>
   );
 }
@@ -115,12 +150,13 @@ const styles = StyleSheet.create({
   statCard: { flex: 1, backgroundColor: colors.surfaceMuted, borderRadius: 12, padding: 12, alignItems: 'center' },
   statValue: { fontSize: 17, fontWeight: '700', color: colors.ink },
   statLabel: { fontSize: 10.5, color: colors.textMuted, marginTop: 2 },
+  section: { backgroundColor: colors.surfaceMuted, borderRadius: 14, paddingHorizontal: 14, marginBottom: 14 },
+  sectionTitle: { fontSize: 11.5, fontWeight: '600', color: colors.textSubtle, paddingTop: 12, letterSpacing: 0.3 },
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 14,
-    paddingHorizontal: 2,
     borderBottomWidth: 1,
     borderBottomColor: colors.divider,
   },

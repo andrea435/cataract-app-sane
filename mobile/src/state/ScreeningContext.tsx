@@ -8,7 +8,7 @@ import { Job, REFERRAL_SELECT, ReferralJob, SCAN_SELECT, ScanJob, isConnectionEr
 import { colors } from '../theme/colors';
 import { CONSENT_VERSION } from '../data/content';
 import { ClinicInput, ClinicRow, ConsentDraft, DisplayResult, Eye, ProfileRow, ReferralRow, ReferralStatus, ScanRow, WorkerSettingsRow, statusFields } from '../data/types';
-import { formatDate, formatScannedAt } from '../data/format';
+import { formatDate, formatScannedAt, localDateString } from '../data/format';
 import type { CaptureFrame, EyeAnalysis } from '../lib/eyeModel';
 
 export type TabKey = 'scan' | 'history' | 'clinics' | 'profile';
@@ -809,7 +809,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
         externalId: patientId.trim() || null,
         name: r.name,
         eyeLabel: r.eyeLabel,
-        scannedAt: new Date().toISOString().slice(0, 10),
+        scannedAt: localDateString(),
         probability: r.probability,
         detected: r.status.detected,
         severity: r.status.severity,

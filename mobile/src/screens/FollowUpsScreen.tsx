@@ -83,12 +83,16 @@ export default function FollowUpsScreen({ navigation }: Props) {
                   Referred {formatShortDate(r.created_at)} by {r.worker_name}
                   {r.followed_up_at ? ` · last followed up ${formatShortDate(r.followed_up_at)}` : ''}
                 </Text>
+                {/* Call clinic gets its own row so the three buttons don't squeeze on 360-wide phones. */}
+                {!!clinic?.phone && (
+                  <Pressable
+                    style={[styles.action, styles.actionWide]}
+                    onPress={() => Linking.openURL(`tel:${clinic.phone?.replace(/\s/g, '')}`)}
+                  >
+                    <Text style={styles.actionText}>Call clinic · {clinic.phone}</Text>
+                  </Pressable>
+                )}
                 <View style={styles.actions}>
-                  {!!clinic?.phone && (
-                    <Pressable style={styles.action} onPress={() => Linking.openURL(`tel:${clinic.phone?.replace(/\s/g, '')}`)}>
-                      <Text style={styles.actionText}>Call clinic</Text>
-                    </Pressable>
-                  )}
                   <Pressable
                     style={styles.action}
                     disabled={busy}
@@ -143,7 +147,9 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     gap: 5,
+    minHeight: 44,
     paddingVertical: 10,
+    paddingHorizontal: 10,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.border,
@@ -151,7 +157,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  actionWide: { flex: 0, marginTop: 4 },
   actionPrimary: { backgroundColor: colors.brand, borderColor: colors.brand },
-  actionText: { fontSize: 12.5, fontWeight: '700', color: colors.brandDark },
+  actionText: { fontSize: 13.5, fontWeight: '700', color: colors.brandDark },
   footnote: { fontSize: 11.5, color: colors.textSubtle, lineHeight: 17, marginTop: 18 },
 });

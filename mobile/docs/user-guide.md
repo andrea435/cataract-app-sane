@@ -47,7 +47,7 @@ The app has four tabs at the bottom.
 | Tab | What it shows |
 | --- | --- |
 | **Scan** | Your screenings today, how many were flagged for referral, the **Start new screening** button, and your three most recent screenings |
-| **History** | Every screening saved, newest first, with result, confidence and referral status |
+| **History** | The Screening Results dashboard: every screening saved, newest first, as photo cards with result, confidence, clinic and referral status; filter by clinic or search |
 | **Clinics** | The clinics you refer to (add and edit them here) and every referral you have sent, with its status |
 | **Profile** | Your name and region, your total, flagged and this-week counts, and settings |
 
@@ -267,17 +267,24 @@ their result with you, and the health worker's note. Then:
 ## 7. Reviewing past screenings
 
 Open the **History** tab and tap any screening to see its full result again, including the
-photo. Tap **Back to history** to return. Past screenings cannot be edited or deleted from
+photo. The tab opens on the **Screening Results** dashboard. The clinic tabs under it
+(**All Clinics**, each clinic patients were referred to, and **Not referred**) narrow the list,
+and the card below counts the patients and screenings shown. To find a patient, type part of
+their name or patient ID in the search box. Each screening is a card with its eye photo, the
+clinic it was referred to, its number (No. 1 is the first screening saved), the result and
+the referral status. Ten show at a time; tap **See More** for the next ten. Tap **Back to history** to return. Past screenings cannot be edited or deleted from
 the app.
 
 ## 8. Profile and settings
 
-The Profile tab shows your name, region and screening totals. **Notifications** turns
-referral alerts on or off, and **About the AI model** shows the model version. **Change password**
+The Profile tab shows your name, region and screening totals, then settings in four groups:
+**Patients & team**, **This phone**, **About** and **Account**. **Notifications** turns
+referral alerts on or off. **About the AI model** explains in plain words what the cataract
+check does and how to get a good photo. **Help & support** phones DreaLens. **Change password**
 lets you replace the temporary password you were given with your own; do this the first
 time you sign in. **Sync data** shows how many screenings and referrals are waiting on this phone ("Up to
 date" when none are); tap it to upload them now. **Log out** signs you out of this phone.
-Language and Help & support are not active yet.
+The app is in English for health workers; the patient's language is picked on the consent step.
 
 **Reports** shows the whole team's numbers for the last 7, 30 or 90 days, or all time:
 screenings, patients flagged, referred, attended and treated, the treatment rate (treated

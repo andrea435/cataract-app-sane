@@ -32,6 +32,7 @@ export type RootStackParamList = {
   // Both roles (and signed out)
   ChangePassword: undefined;
   PrivacyNotice: undefined;
+  AboutModel: undefined;
 
   // Clinic staff
   ClinicHome: undefined;

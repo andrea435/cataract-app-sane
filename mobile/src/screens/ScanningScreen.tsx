@@ -14,7 +14,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Scanning'>;
 // Keep the screen up at least this long so it doesn't flash past.
 const MIN_SCAN_MS = 1200;
 
-type Problem = { title: string; message: string } | null;
+type Problem = { title: string; message: string; detail?: string } | null;
 
 export default function ScanningScreen({ navigation }: Props) {
   const { capturedPhotoUri, captureFrame, setAnalysis, setActiveTab } = useScreening();
@@ -58,6 +58,7 @@ export default function ScanningScreen({ navigation }: Props) {
         setProblem({
           title: 'Could not analyse the photo',
           message: 'The detection model did not run on this photo. Try taking it again.',
+          detail: e instanceof Error ? e.message : String(e),
         });
       }
     })();
@@ -73,6 +74,7 @@ export default function ScanningScreen({ navigation }: Props) {
         <View style={styles.textBlock}>
           <Text style={styles.title}>{problem.title}</Text>
           <Text style={styles.subtitle}>{problem.message}</Text>
+          {problem.detail ? <Text style={styles.detail} selectable>{problem.detail}</Text> : null}
         </View>
         <View style={styles.actions}>
           <PrimaryButton label="Retake photo" onPress={() => navigation.goBack()} />
@@ -124,6 +126,12 @@ const styles = StyleSheet.create({
   },
   textBlock: {
     alignItems: 'center',
+  },
+  detail: {
+    marginTop: 12,
+    fontSize: 11.5,
+    color: colors.textMuted,
+    textAlign: 'center',
   },
   actions: {
     alignSelf: 'stretch',

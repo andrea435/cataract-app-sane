@@ -1,16 +1,24 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { Text } from '../components/Text';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
+import { useScreening } from '../state/ScreeningContext';
+import { analyseEyePhoto } from '../lib/eyeModel';
+import { GhostButton, PrimaryButton } from '../components/Buttons';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Scanning'>;
 
-const SCAN_DURATION_MS = 2000;
+// Keep the screen up at least this long so it doesn't flash past.
+const MIN_SCAN_MS = 1200;
+
+type Problem = { title: string; message: string } | null;
 
 export default function ScanningScreen({ navigation }: Props) {
+  const { capturedPhotoUri, captureFrame, setAnalysis, setActiveTab } = useScreening();
+  const [problem, setProblem] = useState<Problem>(null);
   const spin = useRef(new Animated.Value(0)).current;
   const bar = useRef(new Animated.Value(0.08)).current;
 
@@ -21,16 +29,64 @@ export default function ScanningScreen({ navigation }: Props) {
     spinLoop.start();
 
     Animated.sequence([
-      Animated.timing(bar, { toValue: 0.78, duration: SCAN_DURATION_MS * 0.6, easing: Easing.out(Easing.ease), useNativeDriver: false }),
-      Animated.timing(bar, { toValue: 0.96, duration: SCAN_DURATION_MS * 0.4, easing: Easing.out(Easing.ease), useNativeDriver: false }),
+      Animated.timing(bar, { toValue: 0.78, duration: MIN_SCAN_MS, easing: Easing.out(Easing.ease), useNativeDriver: false }),
+      Animated.timing(bar, { toValue: 0.96, duration: 4000, easing: Easing.out(Easing.ease), useNativeDriver: false }),
     ]).start();
 
-    const t = setTimeout(() => navigation.replace('Disclaimer'), SCAN_DURATION_MS);
+    let cancelled = false;
+    const started = Date.now();
+    setAnalysis(null);
+    (async () => {
+      try {
+        if (!capturedPhotoUri) throw new Error('No photo was taken');
+        const result = await analyseEyePhoto(capturedPhotoUri, captureFrame);
+        const wait = MIN_SCAN_MS - (Date.now() - started);
+        if (wait > 0) await new Promise(r => setTimeout(r, wait));
+        if (cancelled) return;
+        if (!result.isEye) {
+          setProblem({
+            title: 'No eye found in the photo',
+            message: 'Take the photo again with the eye filling the circle, in good light and in focus.',
+          });
+          return;
+        }
+        setAnalysis(result);
+        navigation.replace('Disclaimer');
+      } catch (e) {
+        if (cancelled) return;
+        console.warn('Cataract model failed', e);
+        setProblem({
+          title: 'Could not analyse the photo',
+          message: 'The detection model did not run on this photo. Try taking it again.',
+        });
+      }
+    })();
     return () => {
-      clearTimeout(t);
+      cancelled = true;
       spinLoop.stop();
     };
-  }, [navigation, spin, bar]);
+  }, [navigation, spin, bar, capturedPhotoUri, captureFrame, setAnalysis]);
+
+  if (problem) {
+    return (
+      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+        <View style={styles.textBlock}>
+          <Text style={styles.title}>{problem.title}</Text>
+          <Text style={styles.subtitle}>{problem.message}</Text>
+        </View>
+        <View style={styles.actions}>
+          <PrimaryButton label="Retake photo" onPress={() => navigation.goBack()} />
+          <GhostButton
+            label="Cancel"
+            onPress={() => {
+              setActiveTab('scan');
+              navigation.navigate('Main');
+            }}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
   const width = bar.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
@@ -68,6 +124,10 @@ const styles = StyleSheet.create({
   },
   textBlock: {
     alignItems: 'center',
+  },
+  actions: {
+    alignSelf: 'stretch',
+    gap: 10,
   },
   title: {
     fontSize: 16,

@@ -11,8 +11,9 @@ See [Closing the treatment gap](mobile/docs/impact.md).
 
 > **Screening aid, not a diagnosis.** The app is meant to help prioritise referrals. Every
 > positive result must be confirmed by an ophthalmologist or trained eye care professional.
-> In the current version the probability score is **simulated** (see
-> [Current limitations](#current-limitations)).
+> The score comes from a VGG19 model that runs on the phone, offline (see
+> [Detection model](mobile/docs/detection-model.md)). It has not yet been validated on
+> patients in the field.
 
 ## Documentation
 
@@ -22,6 +23,7 @@ See [Closing the treatment gap](mobile/docs/impact.md).
 | [User guide](mobile/docs/user-guide.md) | Health workers, trainers | Installing the app and doing a screening step by step |
 | [Developer guide](mobile/README.md) | Developers | Running the app, project structure, how data flows |
 | [Data model](mobile/docs/data-model.md) | Developers | Supabase tables, storage bucket and access rules |
+| [Detection model](mobile/docs/detection-model.md) | Developers | The VGG19 cataract model: what it expects, its classes, how the app runs it |
 | [Push alerts](mobile/docs/push-alerts.md) | Whoever sets up the programme | Turning on lock-screen referral alerts (Firebase, one-time setup) |
 | [Building the Android APK](mobile/docs/android-build.md) | Developers, release managers | Producing and signing an installable APK, shipping updates |
 
@@ -44,16 +46,17 @@ npm install
 npm start
 ```
 
-Scan the QR code with Expo Go on a phone. To install the standalone Android app instead,
+The cataract model is a native module, so it does not run in Expo Go: use a development
+build (`npx expo run:android` / `npx expo run:ios`) or the standalone app. To install the standalone Android app instead,
 open this link on the phone: **[Download the latest APK](https://github.com/andrea435/cataract-app-sane/releases/download/apk-latest/cataract-screening.apk)**. It's rebuilt
 automatically every time an app change is merged into main. Details in
 [Building the Android APK](mobile/docs/android-build.md).
 
 ## Current limitations
 
-- **The detection is simulated.** Camera capture, photo upload and saving are real, but the
-  probability score is a random number generated on the phone. A trained model still needs
-  to be plugged in.
+- **The detection model is not yet validated in the field.** It answers cataract / normal /
+  not an eye; the Mild / Moderate / Severe label is a band of the model's confidence, not a
+  clinical grading.
 - **Accounts are basic.** Health workers and clinic staff sign in with email and password,
   and the database only shows each clinic its own patients. There is no password reset
   (remove and recreate the login), and every health worker sees every patient. Patient

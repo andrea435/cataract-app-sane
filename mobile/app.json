@@ -44,7 +44,8 @@
           "color": "#007296"
         }
       ],
-      "./plugins/withReleaseSigning"
+      "./plugins/withReleaseSigning",
+      "react-native-fast-tflite"
     ]
   }
 }

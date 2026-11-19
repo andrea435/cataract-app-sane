@@ -8,15 +8,24 @@ import { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
 import { useScreening } from '../state/ScreeningContext';
 import { PrimaryButton } from '../components/Buttons';
+import { preloadEyeModel } from '../lib/eyeModel';
+
+// The "align the eye" circle. The model is given only what is inside it.
+const RING_SIZE = 260;
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Capture'>;
 
 export default function CaptureScreen({ navigation }: Props) {
-  const { eye, setCapturedPhotoUri, setActiveTab } = useScreening();
+  const { eye, setCapturedPhotoUri, setCaptureFrame, setActiveTab } = useScreening();
   const [permission, requestPermission] = useCameraPermissions();
   const [ready, setReady] = useState(false);
   const [taking, setTaking] = useState(false);
   const cameraRef = useRef<CameraView>(null);
+  const previewSize = useRef<{ width: number; height: number } | null>(null);
+
+  useEffect(() => {
+    preloadEyeModel();
+  }, []);
 
   useEffect(() => {
     if (permission && !permission.granted && permission.canAskAgain) {
@@ -36,6 +45,8 @@ export default function CaptureScreen({ navigation }: Props) {
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.7 });
       if (photo?.uri) {
         setCapturedPhotoUri(photo.uri);
+        const v = previewSize.current;
+        setCaptureFrame(v ? { viewWidth: v.width, viewHeight: v.height, ringDiameter: RING_SIZE } : null);
         navigation.navigate('Scanning');
       }
     } finally {
@@ -53,7 +64,13 @@ export default function CaptureScreen({ navigation }: Props) {
         <View style={{ width: 46 }} />
       </View>
 
-      <View style={styles.previewArea}>
+      <View
+        style={styles.previewArea}
+        onLayout={e => {
+          const { width, height } = e.nativeEvent.layout;
+          previewSize.current = { width, height };
+        }}
+      >
         {permission?.granted ? (
           <CameraView
             ref={cameraRef}
@@ -130,9 +147,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   ringOuter: {
-    width: 260,
-    height: 260,
-    borderRadius: 130,
+    width: RING_SIZE,
+    height: RING_SIZE,
+    borderRadius: RING_SIZE / 2,
     borderWidth: 2,
     borderColor: colors.captureRing,
     borderStyle: 'dashed',

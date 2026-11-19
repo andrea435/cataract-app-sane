@@ -9,6 +9,7 @@ import { colors } from '../theme/colors';
 import { CONSENT_VERSION } from '../data/content';
 import { ClinicInput, ClinicRow, ConsentDraft, DisplayResult, Eye, ProfileRow, ReferralRow, ReferralStatus, ScanRow, WorkerSettingsRow, statusFields } from '../data/types';
 import { formatDate, formatScannedAt } from '../data/format';
+import type { CaptureFrame, EyeAnalysis } from '../lib/eyeModel';
 
 export type TabKey = 'scan' | 'history' | 'clinics' | 'profile';
 
@@ -124,6 +125,12 @@ interface ScreeningContextValue {
   setDisclaimerChecked: (v: boolean) => void;
   capturedPhotoUri: string | null;
   setCapturedPhotoUri: (v: string | null) => void;
+  /** Where the capture circle sat on screen, so the model sees just the eye. */
+  captureFrame: CaptureFrame | null;
+  setCaptureFrame: (v: CaptureFrame | null) => void;
+  /** The model's answer for the photo being screened. */
+  analysis: EyeAnalysis | null;
+  setAnalysis: (v: EyeAnalysis | null) => void;
   resetDraft: () => void;
 
   currentResult: DisplayResult | null;
@@ -162,6 +169,8 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
   const [consent, setConsent] = useState<ConsentDraft | null>(null);
   const [capturedPhotoUri, setCapturedPhotoUri] = useState<string | null>(null);
+  const [captureFrame, setCaptureFrame] = useState<CaptureFrame | null>(null);
+  const [analysis, setAnalysis] = useState<EyeAnalysis | null>(null);
 
   const [currentResult, setCurrentResult] = useState<DisplayResult | null>(null);
   const [viewOnly, setViewOnly] = useState(false);
@@ -741,12 +750,16 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
     setDisclaimerChecked(false);
     setConsent(null);
     setCapturedPhotoUri(null);
+    setCaptureFrame(null);
+    setAnalysis(null);
     setCurrentResult(null);
     setViewOnly(false);
   }, []);
 
   const computeCurrentResult = useCallback(() => {
-    const probability = Math.floor(Math.random() * 90) + 8;
+    // From the VGG19 model run on the Scanning screen (never a made-up number).
+    if (!analysis) return;
+    const probability = analysis.probability;
     const result: DisplayResult = {
       id: null,
       name: patientName.trim() || 'Patient',
@@ -758,7 +771,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
     };
     setCurrentResult(result);
     setViewOnly(false);
-  }, [patientName, eye, capturedPhotoUri]);
+  }, [patientName, eye, capturedPhotoUri, analysis]);
 
   const viewHistoryItem = useCallback(
     (row: ScanRow) => {
@@ -826,7 +839,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
       latestReferralFor, sendReferral, updateReferral, setFollowUpDays,
       activeTab, setActiveTab,
       patientName, setPatientName, patientId, setPatientId, eye, setEye,
-      consent, setConsent, disclaimerChecked, setDisclaimerChecked, capturedPhotoUri, setCapturedPhotoUri, resetDraft,
+      consent, setConsent, disclaimerChecked, setDisclaimerChecked, capturedPhotoUri, setCapturedPhotoUri, captureFrame, setCaptureFrame, analysis, setAnalysis, resetDraft,
       currentResult, viewOnly, computeCurrentResult, viewHistoryItem,
       saving, finishAndSave,
     }),
@@ -838,7 +851,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
       addClinic, updateClinic, deleteClinic,
       latestReferralFor, sendReferral, updateReferral, setFollowUpDays,
       activeTab,
-      patientName, patientId, eye, consent, disclaimerChecked, capturedPhotoUri, resetDraft,
+      patientName, patientId, eye, consent, disclaimerChecked, capturedPhotoUri, captureFrame, analysis, resetDraft,
       currentResult, viewOnly, computeCurrentResult, viewHistoryItem,
       saving, finishAndSave,
     ]

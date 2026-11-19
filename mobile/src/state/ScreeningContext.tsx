@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import { isAuthRetryableFetchError, type Session } from '@supabase/supabase-js';
 import { supabase, EYE_CAPTURES_BUCKET, PHOTO_URL_TTL_SECONDS, manageAccounts, storedSessionUserId, forgetStoredSession } from '../lib/supabase';
 import { keepPhoto, newId, readJson, writeJson } from '../lib/localStore';
+import { devicePushToken, ensureAlertPermission, forgetPush, shouldAlertLocally, showAlert } from '../lib/alerts';
 import { Job, REFERRAL_SELECT, ReferralJob, SCAN_SELECT, ScanJob, isConnectionError, pendingReferralRow, pendingScanRow, uploadReferral, uploadScan } from './outbox';
 import { colors } from '../theme/colors';
 import { CONSENT_VERSION } from '../data/content';
@@ -46,6 +47,11 @@ interface CachedData {
   settings: WorkerSettingsRow | null;
   accounts: ProfileRow[];
   savedAt: string;
+}
+
+/** Asks the server to send lock-screen push alerts about a referral (best effort). */
+function notifyReferral(referralId: string, event: 'created' | 'updated') {
+  supabase.functions.invoke('notify-referral', { body: { referral_id: referralId, event } }).catch(() => undefined);
 }
 
 const cacheKey = (userId: string) => `cache-${userId}`;
@@ -169,8 +175,14 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const outboxRef = useRef<Job[]>([]);
   const historyRef = useRef<ScanRow[]>([]);
+  const referralsRef = useRef<ReferralRow[]>([]);
+  const profileRef = useRef<ProfileRow | null>(null);
+  const alertBaseline = useRef(false);
+  const pushToken = useRef<string | null>(null);
   const syncPromise = useRef<Promise<void> | null>(null);
   historyRef.current = history;
+  referralsRef.current = referrals;
+  profileRef.current = profile;
 
   // Signed in on this phone. Without signal, once the hour-long access token has expired
   // Supabase reports no session until it can renew it, so fall back to the saved one.
@@ -203,6 +215,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
     setPhotoUrls({});
     setOutbox([]);
     outboxRef.current = [];
+    alertBaseline.current = false;
     setLastSyncedAt(null);
     setLoadError(false);
     setLoading(true);
@@ -226,6 +239,8 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
       setReferrals(cached.referrals ?? []);
       setSettings(cached.settings ?? null);
       setAccounts(cached.accounts ?? []);
+      referralsRef.current = cached.referrals ?? [];
+      alertBaseline.current = true;
       setLoading(false);
       setAuthReady(true);
     }
@@ -265,6 +280,12 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    // Stop pushes for this account reaching this phone.
+    if (pushToken.current) {
+      await supabase.from('push_tokens').delete().eq('token', pushToken.current);
+      pushToken.current = null;
+    }
+    forgetPush();
     const { error } = await supabase.auth.signOut();
     if (error) {
       // No signal: forget the sign-in on this phone anyway. Anything still waiting to
@@ -316,15 +337,50 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
 
   // ---------------------------------------------------------------- loading
 
+  // Referral alerts: compare each fresh load with what was on screen and tell the clinic
+  // about new referrals, and the health worker about their referrals moving on. Only once
+  // there is something to compare with (the phone's copy or an earlier load), so signing in
+  // for the first time doesn't announce everything.
+  const announceChanges = useCallback((before: ReferralRow[], after: ReferralRow[]) => {
+    const me = profileRef.current;
+    if (!me || !me.notifications_enabled || !shouldAlertLocally()) return;
+    const old = new Map(before.map(r => [r.id, r]));
+    if (me.role === 'clinic') {
+      const fresh = after.filter(r => !old.has(r.id) && r.clinic_id === me.clinic_id && r.status === 'referred');
+      if (fresh.length > 3) {
+        showAlert(`${fresh.length} new referrals`, 'Open the clinic view to see who is waiting.', { referralId: fresh[0].id });
+        return;
+      }
+      for (const r of fresh) {
+        showAlert('New referral', `${r.patient?.name ?? 'A patient'} was referred to you by ${r.worker_name}.`, { referralId: r.id });
+      }
+      return;
+    }
+    for (const r of after) {
+      const was = old.get(r.id);
+      if (!was || r.worker_id !== me.id) continue;
+      const clinic = r.clinic?.name ?? 'the clinic';
+      const name = r.patient?.name ?? 'Your patient';
+      if (was.status !== r.status && r.status !== 'referred') {
+        showAlert(`${name} ${r.status === 'treated' ? 'was treated' : 'attended'}`, `${clinic} marked them as ${r.status}.`, { referralId: r.id });
+      } else if (r.clinic_note && was.clinic_note !== r.clinic_note) {
+        showAlert(`Note from ${clinic}`, `${name}: ${r.clinic_note}`, { referralId: r.id });
+      }
+    }
+  }, []);
+
   const loadReferrals = useCallback(async () => {
     const res = await supabase.from('referrals').select(REFERRAL_SELECT).order('created_at', { ascending: false });
     if (res.data) {
       const rows = res.data as ReferralRow[];
+      if (alertBaseline.current) announceChanges(referralsRef.current, rows);
+      alertBaseline.current = true;
+      referralsRef.current = rows;
       setReferrals(rows);
       signPhotos(rows.map(r => r.scan?.photo_path));
     }
     return !res.error;
-  }, [signPhotos]);
+  }, [signPhotos, announceChanges]);
 
   const refreshAll = useCallback(async () => {
     if (!profile) return;
@@ -373,6 +429,19 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     }
   }, [profile, loadReferrals, signPhotos]);
+
+  // Ask once for permission to show referral alerts, if they are switched on, and register
+  // this phone for lock-screen push when the build has Firebase set up.
+  useEffect(() => {
+    if (!profile?.notifications_enabled || !authSession) return;
+    (async () => {
+      if (!(await ensureAlertPermission())) return;
+      const token = await devicePushToken();
+      if (!token) return;
+      pushToken.current = token;
+      await supabase.from('push_tokens').upsert({ token, user_id: profile.id, platform: 'android', updated_at: new Date().toISOString() }, { onConflict: 'token' });
+    })();
+  }, [profile?.id, profile?.notifications_enabled, authSession]);
 
   useEffect(() => {
     if (profile) refreshAll();
@@ -465,6 +534,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
           }
           saveOutbox(outboxRef.current.filter(j => j.id !== job.id));
           setReferrals(prev => [res.row, ...prev.filter(r => r.id !== res.row.id)]);
+          notifyReferral(res.row.id, 'created');
           syncPatientStatusRef.current(res.row.patient_id, res.row.status);
         }
       }
@@ -633,6 +703,8 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
       setReferrals(prev => prev.map(r => (r.id === id ? { ...r, ...patch, updated_at: new Date().toISOString() } : r)));
       if (before && patch.status) syncPatientStatus(before.patient_id, patch.status);
       const { error } = await supabase.from('referrals').update(patch).eq('id', id);
+      // Lock-screen alert for the health worker when the clinic moves their patient on.
+      if (!error && profile?.role === 'clinic' && (patch.status || patch.clinic_note !== undefined)) notifyReferral(id, 'updated');
       if (error) {
         // Roll back the optimistic change so the screen shows what is really stored.
         if (before) {
@@ -643,7 +715,7 @@ export function ScreeningProvider({ children }: { children: React.ReactNode }) {
       }
       return { ok: true, value: undefined };
     },
-    [referrals, syncPatientStatus]
+    [referrals, syncPatientStatus, profile?.role]
   );
 
   const setFollowUpDays = useCallback(

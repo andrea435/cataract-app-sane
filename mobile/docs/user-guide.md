@@ -212,6 +212,20 @@ to record it.
 The status also shows under the patient's name in History. It belongs to the patient, so
 every screening of that patient shows the same status.
 
+### Referral alerts
+
+The phone shows a notification (allow notifications when the app asks):
+
+- **Clinic staff:** when a new patient is referred to your clinic.
+- **Health workers:** when a clinic marks one of your referrals **attended** or
+  **treated**, or adds a note.
+
+Tap the notification to open that patient. Once your programme has set up push alerts
+([push-alerts.md](push-alerts.md)) they arrive on the lock screen even when the app is
+closed. Until then they arrive while the app is open or was used recently, and are
+checked again whenever you open it, so nothing is missed. Turn them off
+with **Notifications** on the Profile tab.
+
 ### Follow-up reminders
 
 If the clinic hasn't marked a referred patient as attended after 14 days, the app flags
@@ -255,8 +269,8 @@ the app.
 
 ## 8. Profile and settings
 
-The Profile tab shows your name, region and screening totals. **Notifications** can be
-turned on or off, and **About the AI model** shows the model version. **Change password**
+The Profile tab shows your name, region and screening totals. **Notifications** turns
+referral alerts on or off, and **About the AI model** shows the model version. **Change password**
 lets you replace the temporary password you were given with your own; do this the first
 time you sign in. **Sync data** shows how many screenings and referrals are waiting on this phone ("Up to
 date" when none are); tap it to upload them now. **Log out** signs you out of this phone.

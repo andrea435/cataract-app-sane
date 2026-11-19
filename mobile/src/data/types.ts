@@ -89,6 +89,8 @@ export interface ReferralRow {
   clinic_id: string;
   status: ReferralStatus;
   worker_name: string;
+  /** The health worker who sent it (their login). */
+  worker_id?: string | null;
   worker_note: string | null;
   clinic_note: string | null;
   /** When the patient agreed to share their result with the clinic. */

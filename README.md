@@ -24,6 +24,7 @@ See [Closing the treatment gap](mobile/docs/impact.md).
 | [Developer guide](mobile/README.md) | Developers | Running the app, project structure, how data flows |
 | [Data model](mobile/docs/data-model.md) | Developers | Supabase tables, storage bucket and access rules |
 | [Detection model](mobile/docs/detection-model.md) | Developers | The VGG19 cataract model: what it expects, its classes, how the app runs it |
+| [Push alerts](mobile/docs/push-alerts.md) | Whoever sets up the programme | Turning on lock-screen referral alerts (Firebase, one-time setup) |
 | [Building the Android APK](mobile/docs/android-build.md) | Developers, release managers | Producing and signing an installable APK, shipping updates |
 
 ## Repository layout

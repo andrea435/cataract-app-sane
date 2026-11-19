@@ -23,7 +23,8 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "CAMERA"
+        "CAMERA",
+        "POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -35,6 +36,12 @@
         {
           "cameraPermission": "Camera access is needed to capture front-of-eye images for cataract screening.",
           "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#007296"
         }
       ],
       "./plugins/withReleaseSigning",

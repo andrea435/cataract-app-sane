@@ -74,6 +74,14 @@ jobs:
               'APP_VERSION=' + cfg.expo.version + '\nVERSION_CODE=' + android.versionCode + '\n');
           "
 
+      # Optional: lock-screen push alerts. Add the Firebase config file as the repo secret
+      # GOOGLE_SERVICES_JSON (its whole contents), or commit mobile/google-services.json.
+      - name: Add Firebase config for push alerts
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        if: env.GOOGLE_SERVICES_JSON != ''
+        run: printf '%s' "$GOOGLE_SERVICES_JSON" > google-services.json
+
       - name: Generate native Android project
         run: npx expo prebuild --platform android --clean --no-install
 

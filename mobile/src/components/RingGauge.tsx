@@ -26,6 +26,7 @@ export function RingGauge({ probability, color, size = 152 }: RingGaugeProps) {
   const dashOffset = circumference * (1 - value / 100);
   // Scale with the ring, and step down for "100%" so it stays well inside the track.
   const pctSize = size * (value === 100 ? 0.17 : 0.2);
+  const inner = size - 2 * stroke; // diameter of the hole inside the ring
 
   return (
     <View style={{ width: size, height: size }}>
@@ -48,8 +49,28 @@ export function RingGauge({ probability, color, size = 152 }: RingGaugeProps) {
         )}
       </Svg>
       <View style={[StyleSheet.absoluteFill, styles.center]} pointerEvents="none">
-        <Text style={[styles.pct, { fontSize: pctSize, lineHeight: pctSize * 1.15 }]}>{value}%</Text>
-        <Text style={[styles.label, { fontSize: Math.max(10, size * 0.072) }]}>confidence</Text>
+        {/* Kept inside the ring's hole whatever the number: the phone's text-size setting is
+            ignored here (the ring itself doesn't grow with it), and the label shrinks to fit
+            its box rather than spill over the stroke. */}
+        <View style={{ width: inner * 0.78, alignItems: 'center' }}>
+          <Text
+            allowFontScaling={false}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.5}
+            style={[styles.pct, { fontSize: pctSize, lineHeight: pctSize * 1.15 }]}
+          >
+            {value}%
+          </Text>
+          <Text
+            allowFontScaling={false}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            style={[styles.label, { fontSize: Math.max(9, size * 0.07) }]}
+          >
+            confidence
+          </Text>
+        </View>
       </View>
     </View>
   );

@@ -26,6 +26,25 @@ outputs saturate to 0 or 1, which is the sign of the wrong scaling. If the model
 retrained with a different preprocessing, change `rgbaToModelInput` in
 `src/lib/eyeModel/preprocess.ts` to match.
 
+## Training data and accuracy
+
+From Sane's thesis (*IoT-Enabled Machine Learning Framework for Cataract Detection*, NUST),
+section 5.2. These are the thesis's figures; they were not re-measured for the app.
+
+- **1,476 images** in three classes (cataract, normal, not an eye), split 1,313 for training
+  and 163 for validation.
+- Sources:
+  - Padia, N. et al. (2022). *Cataract image dataset*. Kaggle.
+    <https://www.kaggle.com/datasets/nandanp6/cataract-image-dataset>
+  - Cataract (2022). *Cataract v01* (version 7). Roboflow Universe.
+  - Roboflow Universe (2024). *Walls dataset* (version 4), used for the "not an eye" class.
+- **Validation accuracy 95.71%** for the VGG19 model. (Chapter 6 of the thesis also quotes
+  100% and 97.92%; 95.71% is the figure the thesis uses consistently.)
+- The thesis does not state the datasets' licences. Check them before any commercial use.
+
+Validation accuracy is measured on held-out images from the same datasets, not on patients
+screened in the field with phone cameras, so it is not a field sensitivity or specificity.
+
 ## How the app runs it
 
 0. **Loading the model**: `expo-asset` copies the bundled `.tflite` to a real file first and

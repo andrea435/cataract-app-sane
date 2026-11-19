@@ -67,4 +67,3 @@ automatically every time an app change is merged into main. Details in
 - **Works offline for screening.** Screenings and referrals are saved on the phone and
   upload when there is signal; signing in, managing clinics and logins, and clinic updates
   need a connection.
-- Profile items Language and Help & support are visual only.

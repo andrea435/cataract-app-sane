@@ -30,10 +30,10 @@ export function RingGauge({ probability, color, size = 152 }: RingGaugeProps) {
           strokeDashoffset={dashOffset}
           transform="rotate(-90 70 70)"
         />
-        <SvgText x={70} y={65} textAnchor="middle" fontSize={30} fontWeight="700" fill={colors.ink}>
+        <SvgText x={70} y={65} textAnchor="middle" fontSize={30} fontFamily="IBMPlexSans_700Bold" fill={colors.ink}>
           {probability}%
         </SvgText>
-        <SvgText x={70} y={85} textAnchor="middle" fontSize={10.5} fill={colors.textMuted}>
+        <SvgText x={70} y={85} textAnchor="middle" fontSize={10.5} fontFamily="IBMPlexSans_400Regular" fill={colors.textMuted}>
           confidence
         </SvgText>
       </Svg>

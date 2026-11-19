@@ -44,6 +44,7 @@ export const CONSENT_VERSION = '2026-11-v1';
 /** Who runs the screening programme and how to reach them (shown in the privacy notice). */
 export const PRIVACY_CONTACT = {
   organisation: 'DreaLens',
+  phone: '+263 77 343 9962',
   contact: 'your health worker, or call DreaLens on +263 77 343 9962',
 };
 
@@ -97,5 +98,29 @@ export const PRIVACY_NOTICE: { heading: string; paragraphs: string[] }[] = [
   {
     heading: 'Children and people who cannot consent',
     paragraphs: ['For a child, or an adult who cannot decide for themselves, a parent or guardian gives consent on their behalf.'],
+  },
+];
+
+/** Plain-language facts about the detection model, shown on the "About the AI model" screen. */
+export const ABOUT_MODEL: { heading: string; paragraphs: string[] }[] = [
+  {
+    heading: 'What it does',
+    paragraphs: [
+      'The app looks at a photo of the front of the eye and estimates how likely it is that the eye has a cataract. The percentage on the result is how confident the model is.',
+      'It is a screening aid, not a diagnosis. Every patient flagged should be seen by an eye care professional.',
+    ],
+  },
+  {
+    heading: 'How it works',
+    paragraphs: [
+      'The model is a VGG19 neural network trained on labelled eye photos. It sorts each photo into one of three groups: cataract, normal eye, or not a usable eye photo.',
+      'It runs on this phone, so screening works without signal. The photo is not sent anywhere to be analysed.',
+    ],
+  },
+  {
+    heading: 'Getting a good result',
+    paragraphs: [
+      'Use good light and hold the phone steady. Fill the circle with the eye and keep the eye open. If the photo is blurry or the app says it is not an eye, take it again.',
+    ],
   },
 ];

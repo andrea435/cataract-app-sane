@@ -1,7 +1,8 @@
 import { ScanRow } from './types';
+import { localDateString } from './format';
 
 function isToday(dateStr: string): boolean {
-  return dateStr === new Date().toISOString().slice(0, 10);
+  return dateStr === localDateString();
 }
 
 function isThisWeek(dateStr: string): boolean {

@@ -6,6 +6,13 @@ that changes the app rebuilds the APK behind the
 
 ## 19 November 2026
 
+- **UI polish and Screening Results dashboard (#14).** History follows the Screening
+  Results Dashboard design: clinic tabs (All Clinics, each clinic, Not referred), a card per
+  screening with its eye photo, search by name or patient ID, and See More. The confidence
+  ring's percentage stays centred at any value. Profile is grouped into sections, with an
+  About the AI model screen and Help & support that phones DreaLens. Follow-ups give Call
+  clinic its own row. Dates use the phone's local time, so late-night scans land on the
+  right day.
 - **Release APK fix for the detection model (#13).** The model is copied to a file before
   loading, which fixed "detection model did not run" in the release APK. The Scanning screen
   now shows which step failed if it ever fails again.
